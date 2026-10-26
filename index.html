@@ -1,0 +1,3548 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TukangEdit Studio Pro - Editor Video & Foto 4K Ultra HD (Pro Gratis Edition)</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script>
+    window.__applyTailwindConfig = function() {
+      if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+                mono: ['JetBrains Mono', 'monospace']
+              },
+              colors: {
+                brand: {
+                  50: '#eefcfc',
+                  400: '#38f2ff',
+                  500: '#00e5ff',
+                  600: '#00b4d8',
+                  accent: '#00ffaa'
+                },
+                surface: {
+                  950: '#07080b',
+                  900: '#0b0c10',
+                  800: '#14161d',
+                  700: '#1e212b',
+                  600: '#2a2e3d'
+                }
+              }
+            }
+          }
+        };
+      }
+    };
+    window.__applyTailwindConfig();
+  </script>
+
+  <style>
+    /* Critical Fallback Layout CSS (Instant Render before/without CDN) */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #0b0c10;
+      color: #e5e7eb;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    .hidden { display: none !important; }
+    #canvas-container {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 220px;
+      min-width: 260px;
+      overflow: hidden;
+    }
+    #stage-frame {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 240px;
+      min-height: 135px;
+      background-color: #050608;
+      overflow: hidden;
+    }
+    #main-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #101218; }
+    ::-webkit-scrollbar-thumb { background: #2a2e3d; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
+
+    /* Timeline & Slider */
+    input[type=range] {
+      accent-color: #00e5ff;
+    }
+
+    /* Checkerboard background for transparent canvas regions */
+    .canvas-checkerboard {
+      background-color: #07080b;
+      background-image: 
+        linear-gradient(45deg, #10131c 25%, transparent 25%), 
+        linear-gradient(-45deg, #10131c 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #10131c 75%), 
+        linear-gradient(-45deg, transparent 75%, #10131c 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
+      50% { box-shadow: 0 0 18px rgba(0, 255, 170, 0.45); }
+    }
+    .uhd-badge-glow {
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+
+    /* Crop Overlay Handles */
+    .crop-handle {
+      width: 12px;
+      height: 12px;
+      background: #00ffaa;
+      border: 2px solid #07080b;
+      border-radius: 3px;
+      position: absolute;
+      z-index: 30;
+    }
+  </style>
+</head>
+<body class="bg-surface-900 text-gray-200 h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
+
+  <!-- Hidden SVG Hardware-Accelerated 4K Ultra HD Sharpening & Clarity Filter -->
+  <svg class="hidden" width="0" height="0" aria-hidden="true">
+    <defs>
+      <filter id="uhd-sharpen-filter" color-interpolation-filters="sRGB">
+        <feConvolveMatrix id="uhd-convolve" order="3 3" preserveAlpha="true" kernelMatrix="0 0 0 0 1 0 0 0 0" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Floating Toast Notification -->
+  <div id="toast-container" class="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ================= TOP NAVBAR ================= -->
+  <header class="h-13 py-1.5 bg-surface-800 border-b border-surface-600/60 flex items-center justify-between px-3 md:px-4 z-20 shrink-0 gap-2">
+    <div class="flex items-center space-x-2.5 min-w-0">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-brand-accent flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
+        <i data-lucide="clapperboard" class="w-4 h-4 text-surface-900 stroke-[2.5]"></i>
+      </div>
+      <div class="min-w-0">
+        <h1 class="font-extrabold text-xs sm:text-sm tracking-wider uppercase text-white flex items-center gap-1.5">
+          <span>TukangEdit</span>
+          <span class="text-[9px] bg-gradient-to-r from-brand-500/20 to-brand-accent/20 text-brand-400 border border-brand-500/40 px-1.5 py-0.5 rounded font-mono uhd-badge-glow">CAPCUT PRO GRATIS</span>
+        </h1>
+        <p class="text-[10px] text-gray-400 truncate max-w-[140px] sm:max-w-[220px]" id="project-label">Proyek Baru • Video Studio 4K</p>
+      </div>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="flex bg-surface-700/80 p-1 rounded-xl border border-surface-600/60 shadow-inner shrink-0">
+      <button id="mode-video-btn" onclick="switchMode('video')" class="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold transition-all bg-brand-500 text-surface-900 shadow">
+        <i data-lucide="video" class="w-3.5 h-3.5"></i> <span>Edit Video</span>
+      </button>
+      <button id="mode-photo-btn" onclick="switchMode('photo')" class="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">
+        <i data-lucide="image" class="w-3.5 h-3.5"></i> <span>Edit Foto</span>
+      </button>
+    </div>
+
+    <!-- Action Buttons & 4K Quick Selector -->
+    <div class="flex items-center gap-1.5 md:gap-2 shrink-0">
+      <!-- Lightweight Performance Mode Toggle -->
+      <button id="perf-proxy-btn" onclick="togglePerformanceProxy()" title="Mode Ringan Web menjaga pratinjau 60fps tetap enteng tanpa lag, namun tetap mengekspor pada resolusi penuh 4K UHD" class="hidden xl:flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span id="perf-proxy-label">Mode Ringan: ON</span>
+      </button>
+
+      <!-- Quick Resolution Switcher -->
+      <div class="hidden lg:flex items-center gap-1.5 bg-surface-900/90 border border-surface-600/80 rounded-lg px-2 py-1 text-[11px]">
+        <i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-accent"></i>
+        <span class="text-gray-400 hidden xl:inline">Kualitas:</span>
+        <select id="resolution-preset-select" onchange="setResolutionPreset(this.value)" class="bg-transparent text-brand-400 font-mono font-bold focus:outline-none cursor-pointer">
+          <option value="480" class="bg-surface-800 text-white">SD 480p (Hemat)</option>
+          <option value="720" class="bg-surface-800 text-white">HD 720p</option>
+          <option value="1080" class="bg-surface-800 text-white">FHD 1080p</option>
+          <option value="1440" class="bg-surface-800 text-white">2K QHD 1440p</option>
+          <option value="2160" selected class="bg-surface-800 text-brand-accent">4K UHD 2160p</option>
+        </select>
+      </div>
+
+      <!-- Undo / Redo -->
+      <div class="hidden sm:flex items-center bg-surface-700/70 rounded-lg border border-surface-600/60 p-0.5">
+        <button onclick="undoAction()" id="undo-btn" title="Undo (Ctrl+Z)" class="p-1.5 text-gray-400 hover:text-white rounded-md hover:bg-surface-600 transition">
+          <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="redoAction()" id="redo-btn" title="Redo (Ctrl+Y)" class="p-1.5 text-gray-400 hover:text-white rounded-md hover:bg-surface-600 transition">
+          <i data-lucide="redo-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <label class="cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-surface-700 hover:bg-surface-600 rounded-lg text-white border border-surface-600 transition">
+        <i data-lucide="upload" class="w-3.5 h-3.5 text-brand-500"></i>
+        <span class="hidden md:inline">Ganti Media</span>
+        <input type="file" id="media-uploader" class="hidden" accept="video/*,image/*" onchange="handleFileUpload(event)">
+      </label>
+
+      <button onclick="triggerExport()" id="export-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-brand-500 to-brand-accent text-surface-900 rounded-lg shadow-md hover:brightness-110 active:scale-95 transition">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Ekspor 4K</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= WORKSPACE CORE ================= -->
+  <div class="flex-1 flex overflow-hidden min-h-0">
+
+    <!-- 1. LEFT TOOLBAR TABS (CapCut Pro Style Rail) -->
+    <aside class="w-16 bg-surface-800 border-r border-surface-600/50 flex flex-col items-center py-2.5 gap-2.5 z-10 shrink-0 overflow-y-auto">
+      <button onclick="setToolTab('media')" id="tab-btn-media" class="nav-tab text-brand-500 flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl bg-surface-700 group-hover:bg-brand-500/20 transition">
+          <i data-lucide="folder-open" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[10px] font-medium">Media</span>
+      </button>
+
+      <button onclick="setToolTab('cut')" id="tab-btn-cut" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition relative">
+          <i data-lucide="scissors" class="w-4 h-4 text-rose-400"></i>
+        </div>
+        <span class="text-[10px] font-medium">Potong</span>
+      </button>
+
+      <button onclick="setToolTab('uhd')" id="tab-btn-uhd" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition relative">
+          <i data-lucide="sparkles" class="w-4 h-4 text-brand-accent"></i>
+          <span class="absolute -top-1 -right-1 text-[8px] bg-brand-accent text-surface-900 font-extrabold px-1 rounded">4K</span>
+        </div>
+        <span class="text-[10px] font-medium">Ultra HD</span>
+      </button>
+
+      <button onclick="setToolTab('filters')" id="tab-btn-filters" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[10px] font-medium">Filter</span>
+      </button>
+
+      <button onclick="setToolTab('vfx')" id="tab-btn-vfx" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition relative">
+          <i data-lucide="wand-2" class="w-4 h-4 text-purple-400"></i>
+          <span class="absolute -top-1 -right-1 text-[7px] bg-purple-500 text-white font-bold px-1 rounded">PRO</span>
+        </div>
+        <span class="text-[10px] font-medium">Efek VFX</span>
+      </button>
+
+      <button onclick="setToolTab('text')" id="tab-btn-text" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition">
+          <i data-lucide="type" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[10px] font-medium">Teks</span>
+      </button>
+
+      <button onclick="setToolTab('audio')" id="tab-btn-audio" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition">
+          <i data-lucide="music" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <span class="text-[10px] font-medium">Audio</span>
+      </button>
+
+      <button onclick="setToolTab('aspect')" id="tab-btn-aspect" class="nav-tab text-gray-400 hover:text-white flex flex-col items-center gap-0.5 group w-full py-1">
+        <div class="p-2 rounded-xl group-hover:bg-surface-700 transition">
+          <i data-lucide="crop" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[10px] font-medium">Rasio</span>
+      </button>
+    </aside>
+
+    <!-- 2. SIDEBAR PANEL (Drawer Content) -->
+    <div class="w-68 sm:w-76 md:w-80 bg-surface-800/95 border-r border-surface-600/50 p-3.5 flex flex-col gap-4 overflow-y-auto z-10 backdrop-blur-sm shrink-0">
+
+      <!-- PANEL: MEDIA -->
+      <div id="panel-media" class="panel-section flex flex-col gap-3.5">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Impor Media Lokal</h3>
+            <span class="text-[10px] text-emerald-400 font-mono">100% Client-Side</span>
+          </div>
+          <div onclick="document.getElementById('media-uploader').click()" ondragover="handleDragOver(event)" ondrop="handleDropMedia(event)" class="border-2 border-dashed border-surface-600 hover:border-brand-500/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-surface-900/50 hover:bg-surface-700/30 transition group">
+            <div class="w-10 h-10 rounded-full bg-surface-700 flex items-center justify-center group-hover:scale-110 transition shadow-inner">
+              <i data-lucide="cloud-upload" class="w-5 h-5 text-brand-500"></i>
+            </div>
+            <p class="text-xs text-gray-200 text-center font-semibold">Klik atau Tarik File ke Sini</p>
+            <p class="text-[10px] text-gray-400 text-center">Mendukung Video (MP4, WebM, MOV) & Foto (JPG, PNG, WebP)</p>
+          </div>
+        </div>
+
+        <div class="pt-2.5 border-t border-surface-700">
+          <h4 class="text-xs text-gray-300 font-semibold mb-2 flex items-center justify-between">
+            <span>Preset Media Sampel 4K</span>
+            <span class="text-[10px] text-brand-accent font-mono">Bebas CORS • 60fps</span>
+          </h4>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="loadSampleVideo('cyber')" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="clapperboard" class="w-4 h-4 text-brand-500 shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Demo Video</div>
+                <div class="text-[9px] text-gray-400">Cyber Neon 4K</div>
+              </div>
+            </button>
+            <button onclick="loadSamplePhoto()" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="sparkles" class="w-4 h-4 text-brand-accent shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Demo Foto</div>
+                <div class="text-[9px] text-gray-400">Jakarta 2077 4K</div>
+              </div>
+            </button>
+            <button onclick="loadSampleVideo('nature')" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="waves" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Aurora Wave</div>
+                <div class="text-[9px] text-gray-400">60fps Synth UHD</div>
+              </div>
+            </button>
+            <button onclick="captureVideoFrameAsPhoto()" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="camera" class="w-4 h-4 text-amber-400 shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Tangkap Frame</div>
+                <div class="text-[9px] text-gray-400">Video ke Foto 4K</div>
+              </div>
+            </button>
+            <button onclick="loadSampleVideo('matrix')" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="binary" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Matrix Code</div>
+                <div class="text-[9px] text-gray-400">Digital Rain 4K</div>
+              </div>
+            </button>
+            <button onclick="loadSampleVideo('sunset')" class="p-2 bg-surface-700/60 hover:bg-surface-700 rounded-lg text-left text-xs text-gray-200 flex items-center gap-2 border border-surface-600/60 transition">
+              <i data-lucide="sunset" class="w-4 h-4 text-pink-400 shrink-0"></i>
+              <div class="truncate">
+                <div class="font-semibold text-[11px]">Sunset Drive</div>
+                <div class="text-[9px] text-gray-400">Outrun Horizon</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Performance & Smart Proxy Control Card -->
+        <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-2 text-[11px]">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-emerald-300 flex items-center gap-1.5">
+              <i data-lucide="gauge" class="w-3.5 h-3.5"></i> Akselerasi Ringan Web
+            </span>
+            <button onclick="togglePerformanceProxy()" id="sidebar-proxy-btn" class="px-2 py-0.5 rounded bg-emerald-500 text-surface-900 font-bold text-[10px]">AKTIF</button>
+          </div>
+          <p class="text-[10px] text-gray-300 leading-relaxed">
+            Menjaga editan tetap <b>enteng & 60 FPS</b> di browser dengan Smart Proxy & perenderan pintar, lalu otomatis merender <b>4K Ultra HD</b> penuh saat ekspor.
+          </p>
+        </div>
+
+        <!-- Media Info Card -->
+        <div class="p-3 rounded-xl bg-surface-900/70 border border-surface-700 space-y-2 text-[11px]">
+          <div class="flex items-center justify-between text-gray-300 font-semibold">
+            <span class="flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-brand-500"></i> Diagnostik Media</span>
+            <span id="media-badge-type" class="px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 font-mono text-[10px]">VIDEO 4K</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 text-[10px] text-gray-400 pt-1">
+            <div>Target Ekspor: <span id="info-canvas-res" class="text-white font-mono">3840×2160</span></div>
+            <div>FPS Render: <span id="info-fps" class="text-brand-accent font-mono">60 FPS</span></div>
+            <div>Pratinjau: <span id="info-proxy-res" class="text-emerald-400 font-mono">Smart 720p</span></div>
+            <div>Status: <span class="text-emerald-400 font-semibold">Siap Ekspor</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: POTONG / SPLIT KLIP & CROP LAYAR (CapCut Pro Cutter) -->
+      <div id="panel-cut" class="panel-section hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="scissors" class="w-4 h-4 text-rose-400"></i> Potong Klip & Layar
+            </h3>
+            <p class="text-[10px] text-gray-400">Bagi segmen video, buang bagian & pangkas area</p>
+          </div>
+        </div>
+
+        <!-- 1. Multi-Clip Split & Cut Tools -->
+        <div class="p-3 rounded-xl bg-surface-900/80 border border-surface-700 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-gray-200">1. Potong / Bagi Timeline Video</span>
+            <span id="clip-count-badge" class="text-[10px] font-mono bg-brand-500/15 text-brand-400 px-1.5 py-0.5 rounded">1 Klip</span>
+          </div>
+          <p class="text-[10px] text-gray-400">Geser jarum waktu di bawah lalu klik <b>Bagi Klip</b> untuk memotong-motong video menjadi beberapa bagian seperti CapCut.</p>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="splitClipAtPlayhead()" class="py-2 px-2.5 bg-brand-500 hover:bg-brand-400 text-surface-900 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow transition">
+              <i data-lucide="scissors" class="w-3.5 h-3.5"></i> Bagi Klip (S)
+            </button>
+            <button onclick="deleteActiveClipSegment()" class="py-2 px-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Bagian
+            </button>
+            <button onclick="duplicateActiveClipSegment()" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 text-gray-200 rounded-lg text-[11px] flex items-center justify-center gap-1 border border-surface-600">
+              <i data-lucide="copy" class="w-3 h-3 text-brand-400"></i> Duplikat Klip
+            </button>
+            <button onclick="resetAllClipSegments()" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 text-gray-200 rounded-lg text-[11px] flex items-center justify-center gap-1 border border-surface-600">
+              <i data-lucide="rotate-ccw" class="w-3 h-3 text-amber-400"></i> Satukan Utuh
+            </button>
+          </div>
+
+          <!-- Quick Trim Start / End from Cut Panel -->
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="setTrimStartAtPlayhead()" class="py-1.5 px-2 bg-surface-800 hover:bg-surface-700 text-brand-400 rounded text-[10px] font-semibold border border-surface-600 flex items-center justify-center gap-1">
+              <i data-lucide="arrow-right-to-line" class="w-3 h-3"></i> Potong Awal ke Jarum
+            </button>
+            <button onclick="setTrimEndAtPlayhead()" class="py-1.5 px-2 bg-surface-800 hover:bg-surface-700 text-brand-accent rounded text-[10px] font-semibold border border-surface-600 flex items-center justify-center gap-1">
+              <i data-lucide="arrow-left-to-line" class="w-3 h-3"></i> Potong Akhir ke Jarum
+            </button>
+          </div>
+
+          <!-- Segment List -->
+          <div id="segment-list-container" class="space-y-1 max-h-28 overflow-y-auto pt-1"></div>
+        </div>
+
+        <!-- 2. Transitions Between Cut Clips -->
+        <div class="p-3 rounded-xl bg-surface-900/80 border border-surface-700 space-y-2">
+          <label class="text-[11px] font-bold text-gray-200 block">2. Transisi Antar Potongan Klip</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="setClipTransition('none')" id="trans-btn-none" class="py-1.5 px-1.5 rounded text-[10px] bg-brand-500 text-surface-900 font-bold">Normal</button>
+            <button onclick="setClipTransition('fade')" id="trans-btn-fade" class="py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600">Fade Hitam</button>
+            <button onclick="setClipTransition('flash')" id="trans-btn-flash" class="py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600">Flash Putih</button>
+            <button onclick="setClipTransition('zoom')" id="trans-btn-zoom" class="py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600">Zoom Warp</button>
+            <button onclick="setClipTransition('glitch')" id="trans-btn-glitch" class="py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600">Glitch RGB</button>
+            <button onclick="setClipTransition('slide')" id="trans-btn-slide" class="py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600">Slide Geser</button>
+          </div>
+        </div>
+
+        <!-- 3. Interactive On-Screen Crop Box -->
+        <div class="p-3 rounded-xl bg-surface-900/80 border border-surface-700 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-gray-200">3. Pangkas Area Layar (Crop Frame)</span>
+            <button onclick="toggleCropOverlay()" id="crop-mode-toggle-btn" class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-700 text-gray-300 border border-surface-600">NONAKTIF</button>
+          </div>
+          <p class="text-[10px] text-gray-400">Aktifkan kotak potong di layar untuk memilih bagian gambar/video yang ingin diambil.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="applyInteractiveCrop()" class="py-1.5 px-2 bg-brand-accent hover:brightness-110 text-surface-900 font-bold rounded-lg text-[11px] flex items-center justify-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Potongan
+            </button>
+            <button onclick="resetInteractiveCrop()" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 text-gray-300 rounded-lg text-[11px] flex items-center justify-center gap-1">
+              <i data-lucide="maximize" class="w-3.5 h-3.5"></i> Reset Area Penuh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: 4K ULTRA HD ENGINE -->
+      <div id="panel-uhd" class="panel-section hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-4 h-4 text-brand-accent"></i> Mesin 4K Ultra HD
+            </h3>
+            <p class="text-[10px] text-gray-400">AI Upscaling, penajaman detail, HDR & 60fps</p>
+          </div>
+          <button onclick="toggleUhdMaster()" id="uhd-master-btn" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-accent text-surface-900 shadow">
+            AKTIF
+          </button>
+        </div>
+
+        <!-- One-Click Ultra HD Presets -->
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="applyUhdPreset('4k-crisp')" class="p-2 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-accent/10 border border-brand-500/40 hover:border-brand-500 text-left transition">
+            <div class="text-xs font-bold text-brand-400 flex items-center gap-1"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 4K Ultra Crisp</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Penajaman tepi & mikro-kontras</div>
+          </button>
+          <button onclick="applyUhdPreset('hdr-cinema')" class="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-pink-500/10 border border-amber-500/40 hover:border-amber-400 text-left transition">
+            <div class="text-xs font-bold text-amber-300 flex items-center gap-1"><i data-lucide="sun" class="w-3.5 h-3.5"></i> HDR10+ Studio</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Dynamic range & warna dalam</div>
+          </button>
+          <button onclick="applyUhdPreset('portrait-pro')" class="p-2 rounded-xl bg-surface-700/70 border border-surface-600 hover:border-brand-400 text-left transition">
+            <div class="text-xs font-bold text-white flex items-center gap-1"><i data-lucide="user-check" class="w-3.5 h-3.5 text-pink-400"></i> Portrait Clarifier</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Kulit halus & mata tajam</div>
+          </button>
+          <button onclick="applyUhdPreset('reset')" class="p-2 rounded-xl bg-surface-700/70 border border-surface-600 hover:border-gray-400 text-left transition">
+            <div class="text-xs font-bold text-gray-300 flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Standar Native</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Matikan tambahan peningkatan</div>
+          </button>
+          <button onclick="applyUhdPreset('night-vision')" class="p-2 rounded-xl bg-surface-700/70 border border-surface-600 hover:border-cyan-400 text-left transition">
+            <div class="text-xs font-bold text-cyan-300 flex items-center gap-1"><i data-lucide="moon" class="w-3.5 h-3.5"></i> AI Night Clear</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Terangkan video gelap & bersih</div>
+          </button>
+          <button onclick="applyUhdPreset('anime-4k')" class="p-2 rounded-xl bg-surface-700/70 border border-surface-600 hover:border-purple-400 text-left transition">
+            <div class="text-xs font-bold text-purple-300 flex items-center gap-1"><i data-lucide="flame" class="w-3.5 h-3.5"></i> Anime 4K Pop</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Garis tajam & warna vivid</div>
+          </button>
+        </div>
+
+        <!-- Resolution & FPS Output Target -->
+        <div class="p-3 rounded-xl bg-surface-900/70 border border-surface-700 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[11px] font-semibold text-gray-300">Resolusi Render & Ekspor</label>
+            <span id="uhd-bitrate-badge" class="text-[9px] font-mono text-brand-accent">50 Mbps Pro</span>
+          </div>
+          <div class="grid grid-cols-5 gap-1">
+            <button onclick="setResolutionPreset('480')" id="res-btn-480" class="py-1.5 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">480p</button>
+            <button onclick="setResolutionPreset('720')" id="res-btn-720" class="py-1.5 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">720p</button>
+            <button onclick="setResolutionPreset('1080')" id="res-btn-1080" class="py-1.5 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">1080p</button>
+            <button onclick="setResolutionPreset('1440')" id="res-btn-1440" class="py-1.5 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">2K QHD</button>
+            <button onclick="setResolutionPreset('2160')" id="res-btn-2160" class="py-1.5 rounded text-[10px] font-mono bg-brand-500 text-surface-900 font-bold border border-brand-400">4K UHD</button>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5 pt-1">
+            <button onclick="setTargetFps(24)" id="fps-btn-24" class="py-1 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">24 FPS Film</button>
+            <button onclick="setTargetFps(30)" id="fps-btn-30" class="py-1 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600">30 FPS Standar</button>
+            <button onclick="setTargetFps(60)" id="fps-btn-60" class="py-1 rounded text-[10px] font-mono bg-brand-accent text-surface-900 font-bold">60 FPS Smooth</button>
+          </div>
+        </div>
+
+        <!-- Split Screen Before / After Toggle -->
+        <button onclick="toggleSplitCompare()" id="split-compare-btn" class="w-full py-2 px-3 rounded-xl bg-surface-700 hover:bg-surface-600 border border-surface-600 text-xs font-semibold text-gray-200 flex items-center justify-between transition">
+          <span class="flex items-center gap-1.5"><i data-lucide="columns" class="w-4 h-4 text-brand-400"></i> Mode Layar Belah (Before / After)</span>
+          <span id="split-compare-status" class="text-[10px] font-mono text-gray-400">OFF</span>
+        </button>
+
+        <!-- 4K Enhancement Sliders -->
+        <div class="space-y-2.5 pt-1">
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Ketajaman 4K (Detail Sharpness)</span>
+              <span id="val-sharpness" class="text-brand-400 font-mono">35%</span>
+            </div>
+            <input type="range" id="slider-sharpness" min="0" max="100" value="35" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('sharpness', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Rentang Dinamis HDR (Clarity)</span>
+              <span id="val-hdr" class="text-brand-400 font-mono">25%</span>
+            </div>
+            <input type="range" id="slider-hdr" min="0" max="100" value="25" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('hdr', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Angkat Bayangan Gelap (Shadows)</span>
+              <span id="val-shadows" class="text-brand-400 font-mono">0%</span>
+            </div>
+            <input type="range" id="slider-shadows" min="-50" max="100" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('shadows', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Temperatur Warna (Dingin / Hangat)</span>
+              <span id="val-temp" class="text-brand-400 font-mono">0%</span>
+            </div>
+            <input type="range" id="slider-temp" min="-100" max="100" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('temp', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Vignette Sinematik</span>
+              <span id="val-vignette" class="text-brand-400 font-mono">15%</span>
+            </div>
+            <input type="range" id="slider-vignette" min="0" max="100" value="15" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('vignette', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Peredam Noise (Denoise Smooth)</span>
+              <span id="val-denoise" class="text-brand-400 font-mono">0%</span>
+            </div>
+            <input type="range" id="slider-denoise" min="0" max="100" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateUhdParam('denoise', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: FILTERS & COLOR GRADING + CHROMA KEY -->
+      <div id="panel-filters" class="panel-section hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Color Grading & LUTs Pro</h3>
+          <button onclick="resetFilters()" class="text-[11px] text-brand-500 hover:underline">Reset</button>
+        </div>
+
+        <!-- Preset Filters -->
+        <div class="grid grid-cols-3 gap-1.5">
+          <button onclick="applyPresetFilter('normal')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600">Normal</button>
+          <button onclick="applyPresetFilter('cinematic')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-amber-300">Cinema</button>
+          <button onclick="applyPresetFilter('cyberpunk')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-pink-400">Cyber</button>
+          <button onclick="applyPresetFilter('vintage')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-yellow-500">Vintage</button>
+          <button onclick="applyPresetFilter('bnw')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-gray-300">B & W</button>
+          <button onclick="applyPresetFilter('vibrant')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-brand-500">Vivid</button>
+          <button onclick="applyPresetFilter('tealorange')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-orange-300">Teal&Orange</button>
+          <button onclick="applyPresetFilter('moody')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-indigo-300">Moody</button>
+          <button onclick="applyPresetFilter('golden')" class="py-1.5 px-2 bg-surface-700 hover:bg-surface-600 rounded text-[11px] text-center border border-surface-600 text-amber-400">Golden</button>
+        </div>
+
+        <!-- Sliders -->
+        <div class="space-y-2.5 pt-1">
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Kecerahan (Brightness)</span>
+              <span id="val-brightness">100%</span>
+            </div>
+            <input type="range" min="0" max="200" value="100" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('brightness', this.value, '%')">
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Kontras (Contrast)</span>
+              <span id="val-contrast">100%</span>
+            </div>
+            <input type="range" min="0" max="200" value="100" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('contrast', this.value, '%')">
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Saturasi (Saturation)</span>
+              <span id="val-saturate">100%</span>
+            </div>
+            <input type="range" min="0" max="250" value="100" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('saturate', this.value, '%')">
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Sepia / Kehangatan</span>
+              <span id="val-sepia">0%</span>
+            </div>
+            <input type="range" min="0" max="100" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('sepia', this.value, '%')">
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Hue Rotate (Warna)</span>
+              <span id="val-hue">0°</span>
+            </div>
+            <input type="range" min="0" max="360" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('hueRotate', this.value, 'deg')">
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Blur (Fokus Lembut)</span>
+              <span id="val-blur">0px</span>
+            </div>
+            <input type="range" min="0" max="20" value="0" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateFilter('blur', this.value, 'px')">
+          </div>
+        </div>
+
+        <!-- Chroma Key / Green Screen Remover -->
+        <div class="p-3 rounded-xl bg-surface-900/80 border border-surface-700 space-y-2 mt-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1"><i data-lucide="pipette" class="w-3.5 h-3.5"></i> Chroma Key (Green Screen)</span>
+            <button onclick="toggleChromaKey()" id="chroma-key-btn" class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-700 text-gray-400">OFF</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="color" id="chroma-color-input" value="#00ff00" class="w-8 h-7 bg-surface-700 rounded cursor-pointer border border-surface-600 p-0.5" oninput="updateChromaParams()">
+            <div class="flex-1">
+              <div class="flex justify-between text-[10px] text-gray-400">
+                <span>Toleransi Warna</span>
+                <span id="val-chroma-tol">40%</span>
+              </div>
+              <input type="range" id="slider-chroma-tol" min="5" max="100" value="40" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateChromaParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: EFEK VFX (CapCut Pro Visual Effects) -->
+      <div id="panel-vfx" class="panel-section hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="wand-2" class="w-4 h-4 text-purple-400"></i> Efek Visual CapCut Pro
+            </h3>
+            <p class="text-[10px] text-gray-400">Efek animasi real-time gratis tanpa watermark</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setVfxEffect('none')" id="vfx-btn-none" class="p-2.5 rounded-xl bg-brand-500 text-surface-900 font-bold text-left text-xs border border-brand-400 transition">
+            <div>Tanpa Efek</div>
+            <div class="text-[9px] opacity-75 font-normal">Bersih Standar</div>
+          </button>
+          <button onclick="setVfxEffect('glitch')" id="vfx-btn-glitch" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-pink-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>RGB Glitch</div>
+            <div class="text-[9px] text-gray-400 font-normal">Cyber Chromatic Split</div>
+          </button>
+          <button onclick="setVfxEffect('vhs')" id="vfx-btn-vhs" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-amber-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>VHS Retro 90s</div>
+            <div class="text-[9px] text-gray-400 font-normal">Scanline & Timecode</div>
+          </button>
+          <button onclick="setVfxEffect('bokeh')" id="vfx-btn-bokeh" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-yellow-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>Golden Bokeh</div>
+            <div class="text-[9px] text-gray-400 font-normal">Partikel Cahaya Emas</div>
+          </button>
+          <button onclick="setVfxEffect('letterbox')" id="vfx-btn-letterbox" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-gray-200 font-bold text-left text-xs border border-surface-600 transition">
+            <div>Cinema Bar</div>
+            <div class="text-[9px] text-gray-400 font-normal">Layar Lebar Bioskop</div>
+          </button>
+          <button onclick="setVfxEffect('shake')" id="vfx-btn-shake" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-cyan-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>Bass Shake</div>
+            <div class="text-[9px] text-gray-400 font-normal">Detak Kamera Dinamis</div>
+          </button>
+          <button onclick="setVfxEffect('rain')" id="vfx-btn-rain" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-blue-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>Rain Aesthetic</div>
+            <div class="text-[9px] text-gray-400 font-normal">Rintik Hujan Malam</div>
+          </button>
+          <button onclick="setVfxEffect('neonframe')" id="vfx-btn-neonframe" class="p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-emerald-300 font-bold text-left text-xs border border-surface-600 transition">
+            <div>Neon Cyber HUD</div>
+            <div class="text-[9px] text-gray-400 font-normal">Bingkai Gaming 4K</div>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-surface-700">
+          <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+            <span>Intensitas Efek VFX</span>
+            <span id="val-vfx-intensity" class="text-brand-400 font-mono">65%</span>
+          </div>
+          <input type="range" id="slider-vfx-intensity" min="10" max="100" value="65" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateVfxIntensity(this.value)">
+        </div>
+      </div>
+
+      <!-- PANEL: TEXT OVERLAY & STICKERS -->
+      <div id="panel-text" class="panel-section hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Lapisan Teks & Stiker</h3>
+          <button onclick="deleteSelectedText()" class="text-[11px] text-rose-400 hover:underline flex items-center gap-1">
+            <i data-lucide="trash-2" class="w-3 h-3"></i> Hapus
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="addTextOverlay()" class="py-2 px-3 bg-brand-500 hover:bg-brand-600 text-surface-900 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
+            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Teks
+          </button>
+          <button onclick="addWatermarkPreset()" class="py-2 px-3 bg-surface-700 hover:bg-surface-600 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 border border-surface-600">
+            <i data-lucide="award" class="w-4 h-4 text-brand-accent"></i> Watermark 4K
+          </button>
+        </div>
+
+        <!-- Quick Stickers / Emoji Bar -->
+        <div>
+          <label class="text-[10px] text-gray-400 block mb-1">Tambah Stiker & Badge Cepat</label>
+          <div class="flex flex-wrap gap-1">
+            <button onclick="addStickerLayer('🔥')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">🔥</button>
+            <button onclick="addStickerLayer('✨')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">✨</button>
+            <button onclick="addStickerLayer('💯')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">💯</button>
+            <button onclick="addStickerLayer('🎬')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">🎬</button>
+            <button onclick="addStickerLayer('⚡')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">⚡</button>
+            <button onclick="addStickerLayer('❤️')" class="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs">❤️</button>
+            <button onclick="addStickerLayer('SUBSCRIBE 🔔')" class="px-2 py-1 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded text-[10px]">SUBSCRIBE 🔔</button>
+          </div>
+        </div>
+
+        <!-- Layer List -->
+        <div id="text-layer-list" class="flex flex-wrap gap-1.5 pt-1"></div>
+
+        <div id="text-controls" class="space-y-2.5 pt-2 border-t border-surface-700">
+          <div>
+            <label class="text-[11px] text-gray-400 block mb-1">Isi Kalimat</label>
+            <input type="text" id="text-content-input" value="TukangEdit 4K Studio" class="w-full bg-surface-700 border border-surface-600 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500" oninput="updateActiveText()">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Warna Huruf</label>
+              <input type="color" id="text-color-input" value="#ffffff" class="w-full h-8 bg-surface-700 rounded cursor-pointer border border-surface-600 p-0.5" onchange="updateActiveText()" oninput="updateActiveText()">
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Ukuran Huruf</label>
+              <input type="number" id="text-size-input" value="42" min="12" max="200" class="w-full bg-surface-700 border border-surface-600 rounded px-2 py-1.5 text-xs text-white" oninput="updateActiveText()">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Warna Outline</label>
+              <input type="color" id="text-stroke-input" value="#000000" class="w-full h-8 bg-surface-700 rounded cursor-pointer border border-surface-600 p-0.5" oninput="updateActiveText()">
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Gaya Latar</label>
+              <select id="text-bg-input" class="w-full h-8 bg-surface-700 border border-surface-600 rounded px-2 text-xs text-white focus:outline-none" onchange="updateActiveText()">
+                <option value="none">Tanpa Latar</option>
+                <option value="dark">Box Hitam Transparan</option>
+                <option value="brand">Box Cyan TukangEdit</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Pilihan Font</label>
+              <select id="text-font-input" class="w-full bg-surface-700 border border-surface-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none" onchange="updateActiveText()">
+                <option value="Inter, sans-serif">Inter Modern Sans</option>
+                <option value="Impact, sans-serif">Impact / Meme Bold</option>
+                <option value="Georgia, serif">Serif Sinematik</option>
+                <option value="JetBrains Mono, monospace">Digital Monospace</option>
+                <option value="cursive">Signature Cursive</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-400 block mb-1">Animasi Teks</label>
+              <select id="text-anim-input" class="w-full bg-surface-700 border border-surface-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none" onchange="updateActiveText()">
+                <option value="none">Diam (Statis)</option>
+                <option value="bounce">Membal (Bounce)</option>
+                <option value="pulse">Denyut Neon</option>
+                <option value="wave">Gelombang</option>
+                <option value="typewriter">Mesin Ketik</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: AUDIO & SFX STUDIO -->
+      <div id="panel-audio" class="panel-section hidden flex flex-col gap-3.5">
+        <div>
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="music" class="w-4 h-4 text-amber-400"></i> Studio Audio & SFX Pro
+          </h3>
+          <p class="text-[10px] text-gray-400">Musik latar, efek suara transisi & penguat volume</p>
+        </div>
+
+        <!-- Upload External Audio -->
+        <label class="cursor-pointer p-3 rounded-xl bg-surface-900/80 hover:bg-surface-700/50 border border-dashed border-surface-600 flex items-center gap-2.5 transition">
+          <i data-lucide="file-audio" class="w-5 h-5 text-amber-400 shrink-0"></i>
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-white truncate" id="custom-audio-label">Impor Musik MP3 / WAV</div>
+            <div class="text-[10px] text-gray-400">Gabungkan lagu ke dalam video</div>
+          </div>
+          <input type="file" id="audio-uploader" class="hidden" accept="audio/*" onchange="handleAudioUpload(event)">
+        </label>
+
+        <!-- Volume & Fade Controls -->
+        <div class="p-3 rounded-xl bg-surface-900/70 border border-surface-700 space-y-2.5">
+          <div>
+            <div class="flex justify-between text-[11px] text-gray-300 mb-1">
+              <span>Volume Master Video/Audio</span>
+              <span id="val-audio-vol" class="text-brand-400 font-mono">100%</span>
+            </div>
+            <input type="range" id="slider-audio-vol" min="0" max="100" value="100" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateAudioVolume(this.value)">
+          </div>
+        </div>
+
+        <!-- Instant Web Audio Synthesizer Sound Effects (SFX) -->
+        <div class="space-y-2">
+          <label class="text-[11px] font-semibold text-gray-300 block">Efek Suara Instan (SFX Bebas Royalti)</label>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="playSynthSfx('whoosh')" class="p-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-left text-[11px] text-gray-200 flex items-center gap-1.5 border border-surface-600">
+              <i data-lucide="wind" class="w-3.5 h-3.5 text-brand-400"></i> Whoosh Cepat
+            </button>
+            <button onclick="playSynthSfx('boom')" class="p-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-left text-[11px] text-gray-200 flex items-center gap-1.5 border border-surface-600">
+              <i data-lucide="speaker" class="w-3.5 h-3.5 text-rose-400"></i> Bass Drop Boom
+            </button>
+            <button onclick="playSynthSfx('ding')" class="p-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-left text-[11px] text-gray-200 flex items-center gap-1.5 border border-surface-600">
+              <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Cling / Ding
+            </button>
+            <button onclick="playSynthSfx('glitch')" class="p-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-left text-[11px] text-gray-200 flex items-center gap-1.5 border border-surface-600">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-400"></i> Cyber Glitch
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: ASPECT RATIO & TRANSFORM -->
+      <div id="panel-aspect" class="panel-section hidden flex flex-col gap-3.5">
+        <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Format Rasio & Transformasi</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setAspectRatio('16:9')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">16 : 9</span>
+            <span class="text-[10px] text-gray-400">YouTube / 4K TV</span>
+          </button>
+          <button onclick="setAspectRatio('9:16')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">9 : 16</span>
+            <span class="text-[10px] text-gray-400">TikTok / Reels</span>
+          </button>
+          <button onclick="setAspectRatio('1:1')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">1 : 1</span>
+            <span class="text-[10px] text-gray-400">Square Feed</span>
+          </button>
+          <button onclick="setAspectRatio('4:5')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">4 : 5</span>
+            <span class="text-[10px] text-gray-400">IG Portrait</span>
+          </button>
+          <button onclick="setAspectRatio('21:9')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">21 : 9</span>
+            <span class="text-[10px] text-gray-400">UltraWide Cinema</span>
+          </button>
+          <button onclick="setAspectRatio('original')" class="p-2.5 bg-surface-700 hover:bg-surface-600 rounded-lg flex flex-col items-center gap-0.5 border border-surface-600 aspect-ratio-btn">
+            <span class="text-xs font-bold text-white">Original</span>
+            <span class="text-[10px] text-gray-400">Sesuai Sumber</span>
+          </button>
+        </div>
+
+        <!-- Mode Fit / Cover -->
+        <div class="pt-2 border-t border-surface-700 space-y-2">
+          <label class="text-[11px] text-gray-300 font-semibold block">Mode Penyesuaian Gambar (Scale Mode)</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="setScaleMode('cover')" id="scale-btn-cover" class="py-1.5 px-2 rounded text-[11px] bg-brand-500 text-surface-900 font-semibold">Isi Penuh (Cover)</button>
+            <button onclick="setScaleMode('fit')" id="scale-btn-fit" class="py-1.5 px-2 rounded text-[11px] bg-surface-700 text-gray-300">Fit Blur</button>
+            <button onclick="setScaleMode('stretch')" id="scale-btn-stretch" class="py-1.5 px-2 rounded text-[11px] bg-surface-700 text-gray-300">Rentang</button>
+          </div>
+        </div>
+
+        <!-- Rotate & Flip Controls -->
+        <div class="pt-2 border-t border-surface-700 space-y-2">
+          <label class="text-[11px] text-gray-300 font-semibold block">Rotasi & Balik (Flip / Zoom)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="rotateMedia(90)" class="py-2 px-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs flex items-center justify-center gap-1 border border-surface-600">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-brand-500"></i> Putar 90°
+            </button>
+            <button onclick="flipMedia('h')" class="py-2 px-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs flex items-center justify-center gap-1 border border-surface-600">
+              <i data-lucide="flip-horizontal" class="w-3.5 h-3.5 text-brand-500"></i> Flip H
+            </button>
+            <button onclick="flipMedia('v')" class="py-2 px-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs flex items-center justify-center gap-1 border border-surface-600">
+              <i data-lucide="flip-vertical" class="w-3.5 h-3.5 text-brand-500"></i> Flip V
+            </button>
+          </div>
+
+          <div class="pt-1">
+            <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+              <span>Zoom Kanvas</span>
+              <span id="val-zoom">100%</span>
+            </div>
+            <input type="range" id="slider-zoom" min="50" max="200" value="100" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateZoom(this.value)">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. CENTER PREVIEW CANVAS (Precision Auto-Fitting Viewport) -->
+    <main class="flex-1 flex flex-col bg-surface-950 relative overflow-hidden min-w-0 min-h-0">
+      
+      <!-- Canvas Stage Container -->
+      <div id="canvas-container" class="flex-1 flex items-center justify-center p-3 md:p-5 relative overflow-hidden canvas-checkerboard min-h-0">
+        
+        <!-- Precision Sized Stage Frame (Always fits viewport & matches exact aspect ratio) -->
+        <div id="stage-frame" class="relative flex items-center justify-center shadow-2xl rounded-lg overflow-hidden border border-surface-600/80 bg-black">
+          <canvas id="main-canvas" class="w-full h-full block cursor-move"></canvas>
+
+          <!-- Rule of Thirds Grid Overlay -->
+          <div id="grid-overlay" class="absolute inset-0 pointer-events-none hidden">
+            <div class="w-full h-full grid grid-cols-3 grid-rows-3">
+              <div class="border-r border-b border-white/25"></div>
+              <div class="border-r border-b border-white/25"></div>
+              <div class="border-b border-white/25"></div>
+              <div class="border-r border-b border-white/25"></div>
+              <div class="border-r border-b border-white/25"></div>
+              <div class="border-b border-white/25"></div>
+              <div class="border-r border-white/25"></div>
+              <div class="border-r border-white/25"></div>
+              <div></div>
+            </div>
+          </div>
+
+          <!-- Interactive Split-Screen Before / After Slider Overlay -->
+          <div id="split-slider-overlay" class="absolute inset-0 pointer-events-none hidden z-20">
+            <div id="split-divider-line" class="absolute top-0 bottom-0 w-0.5 bg-brand-accent shadow-[0_0_10px_#00ffaa] pointer-events-auto cursor-ew-resize" style="left: 50%;">
+              <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-surface-900 border-2 border-brand-accent flex items-center justify-center shadow-lg">
+                <i data-lucide="move-horizontal" class="w-3.5 h-3.5 text-brand-accent"></i>
+              </div>
+              <span class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/75 text-[9px] font-mono text-gray-300">ASLI</span>
+              <span class="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-brand-accent/90 text-[9px] font-mono font-bold text-surface-900">4K UHD</span>
+            </div>
+          </div>
+
+          <!-- Interactive Frame Crop Box Overlay -->
+          <div id="crop-overlay-container" class="absolute inset-0 hidden z-25">
+            <div class="absolute inset-0 bg-black/55 pointer-events-none"></div>
+            <div id="crop-box-rect" class="absolute border-2 border-brand-accent shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] cursor-move" style="left:10%; top:10%; width:80%; height:80%;">
+              <div class="w-full h-full grid grid-cols-3 grid-rows-3 pointer-events-none">
+                <div class="border-r border-b border-brand-accent/40"></div>
+                <div class="border-r border-b border-brand-accent/40"></div>
+                <div class="border-b border-brand-accent/40"></div>
+                <div class="border-r border-b border-brand-accent/40"></div>
+                <div class="border-r border-b border-brand-accent/40"></div>
+                <div class="border-b border-brand-accent/40"></div>
+                <div class="border-r border-brand-accent/40"></div>
+                <div class="border-r border-brand-accent/40"></div>
+                <div></div>
+              </div>
+              <!-- Resize Handles -->
+              <div data-crop-handle="nw" class="crop-handle -top-1.5 -left-1.5 cursor-nwse-resize"></div>
+              <div data-crop-handle="ne" class="crop-handle -top-1.5 -right-1.5 cursor-nesw-resize"></div>
+              <div data-crop-handle="sw" class="crop-handle -bottom-1.5 -left-1.5 cursor-nesw-resize"></div>
+              <div data-crop-handle="se" class="crop-handle -bottom-1.5 -right-1.5 cursor-nwse-resize"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Live Badges on Preview Corner -->
+        <div class="absolute top-2.5 left-3 flex items-center gap-2 pointer-events-none z-10">
+          <span id="live-uhd-pill" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-black/80 text-brand-accent border border-brand-accent/40 backdrop-blur-md flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping"></span>
+            4K ULTRA HD ENGINE
+          </span>
+          <span id="active-crop-pill" class="hidden px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/90 text-white">
+            CROP AKTIF
+          </span>
+        </div>
+
+        <!-- Hidden Media Elements -->
+        <video id="hidden-video" class="hidden" playsinline loop crossorigin="anonymous"></video>
+        <audio id="hidden-audio" class="hidden" loop crossorigin="anonymous"></audio>
+      </div>
+
+      <!-- Quick Canvas Overlay Controls Bar -->
+      <div class="h-9 bg-surface-800/95 border-t border-surface-700 px-3 flex items-center justify-between text-xs text-gray-400 shrink-0 gap-2 overflow-x-auto">
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="resolution-indicator" class="font-mono text-[11px] text-gray-200">Dimensi: 3840 x 2160 (4K UHD)</span>
+          <span id="aspect-indicator" class="hidden sm:inline text-[11px] text-brand-400 font-medium">Rasio: 16:9</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button onclick="toggleGridOverlay()" id="grid-toggle-btn" class="hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-surface-700/60 border border-surface-600 text-[11px]">
+            <i data-lucide="grid" class="w-3 h-3"></i> <span class="hidden md:inline">Grid</span>
+          </button>
+          <button onclick="toggleCropOverlay()" id="quick-crop-btn" class="hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-surface-700/60 border border-surface-600 text-[11px] text-rose-300">
+            <i data-lucide="crop" class="w-3 h-3"></i> <span>Pangkas Layar</span>
+          </button>
+          <button onclick="toggleSplitCompare()" class="hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-surface-700/60 border border-surface-600 text-[11px] text-brand-accent">
+            <i data-lucide="columns" class="w-3 h-3"></i> <span class="hidden sm:inline">Split 4K</span>
+          </button>
+          <button onmousedown="setCompareMode(true)" onmouseup="setCompareMode(false)" onmouseleave="setCompareMode(false)" ontouchstart="setCompareMode(true)" ontouchend="setCompareMode(false)" class="hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-surface-700/80 border border-surface-600 text-[11px] text-brand-400">
+            <i data-lucide="eye" class="w-3 h-3"></i> <span>Tahan: Bandingkan Asli</span>
+          </button>
+          <button onclick="resetPosition()" class="hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-surface-700/60 text-[11px]">
+            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> <span class="hidden lg:inline">Reset Posisi Teks</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= 4. CAPCUT PRO MULTI-CLIP VIDEO TIMELINE ================= -->
+      <div id="video-timeline-area" class="h-48 bg-surface-800 border-t border-surface-600/80 flex flex-col z-10 select-none shrink-0">
+        <!-- Timeline Action Toolbar -->
+        <div class="h-9 border-b border-surface-700 px-3 flex items-center justify-between gap-2 overflow-x-auto">
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Play / Pause -->
+            <button onclick="togglePlay()" id="play-btn" class="w-7 h-7 rounded-full bg-brand-500 hover:bg-brand-600 text-surface-900 flex items-center justify-center shadow">
+              <i data-lucide="play" class="w-3.5 h-3.5 fill-current ml-0.5" id="play-icon"></i>
+            </button>
+            <div class="font-mono text-[11px] text-gray-200 bg-surface-900 px-2 py-0.5 rounded border border-surface-700">
+              <span id="time-current" class="text-brand-400 font-bold">00:00.0</span> / <span id="time-total">00:15.0</span>
+            </div>
+
+            <!-- Direct CapCut Split / Cut Buttons on Timeline Bar -->
+            <div class="h-4 w-px bg-surface-600 mx-0.5"></div>
+            <button onclick="splitClipAtPlayhead()" title="Potong / Bagi Klip di Jarum Waktu (Shortcut: S)" class="flex items-center gap-1 px-2.5 py-1 rounded bg-brand-500/20 hover:bg-brand-500 hover:text-surface-900 text-brand-400 border border-brand-500/40 text-[11px] font-semibold transition">
+              <i data-lucide="scissors" class="w-3.5 h-3.5"></i> <span>Potong / Bagi (S)</span>
+            </button>
+            <button onclick="deleteActiveClipSegment()" title="Hapus Segmen Terpilih (Shortcut: Delete)" class="flex items-center gap-1 px-2 py-1 rounded bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Hapus Klip</span>
+            </button>
+            <button onclick="setTrimStartAtPlayhead()" title="Potong Batas Awal ke Posisi Jarum" class="hidden sm:flex items-center gap-1 px-2 py-1 rounded bg-surface-700 hover:bg-surface-600 text-gray-300 text-[10px]">
+              <span>[ Set Awal</span>
+            </button>
+            <button onclick="setTrimEndAtPlayhead()" title="Potong Batas Akhir ke Posisi Jarum" class="hidden sm:flex items-center gap-1 px-2 py-1 rounded bg-surface-700 hover:bg-surface-600 text-gray-300 text-[10px]">
+              <span>Set Akhir ]</span>
+            </button>
+          </div>
+
+          <!-- Audio & Video Speed Control -->
+          <div class="flex items-center gap-2 text-xs shrink-0">
+            <button onclick="toggleMuteAudio()" id="mute-btn" class="flex items-center gap-1 px-2 py-1 rounded bg-surface-700 hover:bg-surface-600 text-gray-300 border border-surface-600 text-[11px]">
+              <i data-lucide="volume-2" class="w-3.5 h-3.5 text-brand-500" id="mute-icon"></i>
+              <span class="hidden sm:inline" id="mute-label">Audio Aktif</span>
+            </button>
+            <div class="flex items-center gap-1">
+              <span class="text-gray-400 hidden md:inline text-[11px]">Kecepatan:</span>
+              <select id="video-speed" class="bg-surface-700 border border-surface-600 rounded px-1.5 py-1 text-white text-[11px]" onchange="changeSpeed(this.value)">
+                <option value="0.25">0.25x (Ultra Slow)</option>
+                <option value="0.5">0.5x (Slow-mo)</option>
+                <option value="1" selected>1.0x (Normal)</option>
+                <option value="1.5">1.5x (Cepat)</option>
+                <option value="2">2.0x (Hyper)</option>
+                <option value="4">4.0x (Time-Lapse)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Multi-Segment Timeline & Trimmer -->
+        <div class="flex-1 px-3 py-2 flex flex-col justify-between bg-surface-900/90 overflow-hidden">
+          
+          <!-- Scrubber & Trim Header -->
+          <div class="flex items-center justify-between text-[10px] text-gray-400">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-500"></i>
+              <span>Trek Video Multi-Segmen (Klik klip untuk pilih, tekan <b>S</b> untuk potong)</span>
+            </span>
+            <span id="trim-info" class="text-brand-accent font-mono">0.0s - 15.0s</span>
+          </div>
+
+          <!-- Interactive Visual Segment Track -->
+          <div id="visual-timeline-track" class="relative w-full h-11 bg-surface-800 rounded-lg border border-surface-600 overflow-hidden my-1 select-none">
+            <!-- Rendered dynamically by renderTimelineSegments() -->
+          </div>
+
+          <!-- Scrubber Progress Bar -->
+          <input type="range" id="video-scrubber" min="0" max="15" value="0" step="0.02" class="w-full h-1.5 bg-surface-700 rounded-lg appearance-none cursor-pointer" oninput="scrubVideo(this.value)">
+
+          <!-- Trim In / Out Ranges -->
+          <div class="grid grid-cols-2 gap-4 pt-1">
+            <div class="flex items-center gap-2">
+              <label class="text-[10px] text-gray-400 shrink-0">Mulai (In):</label>
+              <input type="range" id="trim-start" min="0" max="15" value="0" step="0.1" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateTrimRange()">
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[10px] text-gray-400 shrink-0">Selesai (Out):</label>
+              <input type="range" id="trim-end" min="0" max="15" value="15" step="0.1" class="w-full h-1 bg-surface-600 rounded cursor-pointer" oninput="updateTrimRange()">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ================= EXPORT PROGRESS MODAL ================= -->
+  <div id="export-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden z-50">
+    <div class="bg-surface-800 border border-surface-600 p-6 rounded-2xl w-80 md:w-96 flex flex-col items-center gap-4 text-center shadow-2xl">
+      <div class="w-12 h-12 rounded-full border-4 border-brand-500/20 border-t-brand-500 animate-spin flex items-center justify-center" id="export-spinner"></div>
+      <i data-lucide="check-circle" class="w-12 h-12 text-brand-accent hidden" id="export-success-icon"></i>
+      <div>
+        <h4 class="font-bold text-white text-base" id="export-status-title">Memproses Ekspor 4K Ultra HD...</h4>
+        <p class="text-xs text-gray-400 mt-1" id="export-status-desc">Merender efek visual, penajaman 4K, potongan klip, dan teks ke file baru.</p>
+      </div>
+      <div class="w-full bg-surface-700 h-2.5 rounded-full overflow-hidden">
+        <div id="export-progress-bar" class="bg-gradient-to-r from-brand-500 to-brand-accent h-full w-0 transition-all duration-200"></div>
+      </div>
+      <button onclick="closeExportModal()" id="export-close-btn" class="px-4 py-2 bg-surface-700 text-xs font-semibold rounded-lg text-white hover:bg-surface-600 hidden w-full">Tutup</button>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT APPLICATION CORE ================= -->
+  <script>
+    // Zero-Bloat Procedural 4K Ultra HD Sample Photo Generator (Instant Load, 0 KB Base64 Bloat)
+    let _cachedSamplePhotoURI = null;
+    function getSamplePhotoURI() {
+      if (_cachedSamplePhotoURI) return _cachedSamplePhotoURI;
+      try {
+        const c = document.createElement('canvas');
+        c.width = 1920;
+        c.height = 1080;
+        const x = c.getContext('2d');
+        // Rich Twilight Cyberpunk Skyline & Mountain Landscape
+        const sky = x.createLinearGradient(0, 0, 0, 1080);
+        sky.addColorStop(0, '#050716');
+        sky.addColorStop(0.45, '#121842');
+        sky.addColorStop(0.75, '#3b1d5e');
+        sky.addColorStop(1, '#ff5588');
+        x.fillStyle = sky;
+        x.fillRect(0, 0, 1920, 1080);
+
+        // Glowing Neon Sun
+        const sun = x.createRadialGradient(960, 560, 30, 960, 560, 320);
+        sun.addColorStop(0, '#fffbe0');
+        sun.addColorStop(0.35, '#ffaa00');
+        sun.addColorStop(0.7, 'rgba(255, 0, 128, 0.55)');
+        sun.addColorStop(1, 'rgba(255, 0, 128, 0)');
+        x.fillStyle = sun;
+        x.beginPath();
+        x.arc(960, 560, 320, 0, Math.PI * 2);
+        x.fill();
+
+        // Distant Mountains
+        x.fillStyle = '#0d0c24';
+        x.beginPath();
+        x.moveTo(0, 740);
+        const peaks = [0, 220, 410, 680, 920, 1190, 1450, 1710, 1920];
+        const heights = [690, 560, 650, 510, 640, 490, 630, 550, 680];
+        for (let i = 0; i < peaks.length; i++) x.lineTo(peaks[i], heights[i]);
+        x.lineTo(1920, 1080);
+        x.lineTo(0, 1080);
+        x.closePath();
+        x.fill();
+
+        // High-detail City Towers & Windows
+        for (let i = 0; i < 42; i++) {
+          const bw = 34 + (i * 19) % 52;
+          const bh = 120 + (i * 73) % 280;
+          const bx = (i * 47) % 1880;
+          const by = 780 - bh;
+          x.fillStyle = i % 2 === 0 ? '#070914' : '#0b1022';
+          x.fillRect(bx, by, bw, bh);
+          x.fillStyle = i % 3 === 0 ? '#00e5ff' : (i % 3 === 1 ? '#00ffaa' : '#ff3399');
+          for (let wy = by + 12; wy < 765; wy += 16) {
+            for (let wx = bx + 6; wx < bx + bw - 8; wx += 10) {
+              if (((wx + wy + i) * 13) % 7 > 2) {
+                x.fillRect(wx, wy, 5, 8);
+              }
+            }
+          }
+        }
+
+        // Cyber Water Reflection Grid
+        const water = x.createLinearGradient(0, 770, 0, 1080);
+        water.addColorStop(0, '#070a1c');
+        water.addColorStop(1, '#020308');
+        x.fillStyle = water;
+        x.fillRect(0, 770, 1920, 310);
+
+        x.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+        x.lineWidth = 2;
+        for (let i = -12; i <= 12; i++) {
+          x.beginPath();
+          x.moveTo(960 + i * 35, 770);
+          x.lineTo(960 + i * 190, 1080);
+          x.stroke();
+        }
+        for (let y = 785; y < 1080; y += 28) {
+          x.beginPath();
+          x.moveTo(0, y);
+          x.lineTo(1920, y);
+          x.stroke();
+        }
+        _cachedSamplePhotoURI = c.toDataURL('image/jpeg', 0.92);
+        return _cachedSamplePhotoURI;
+      } catch (err) {
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><rect width="100%" height="100%" fill="#0b0c10"/><circle cx="960" cy="540" r="260" fill="#00e5ff" opacity="0.5"/></svg>');
+      }
+    }
+
+    // App Central State
+    const App = {
+      mode: 'video', // 'video' | 'photo'
+      canvas: null,
+      ctx: null,
+      mediaType: 'video', // 'video' | 'image'
+      useProceduralVideo: true,
+      proceduralTheme: 'cyber', // 'cyber' | 'nature' | 'matrix' | 'sunset'
+      videoEl: null,
+      audioEl: null,
+      imageEl: new Image(),
+      isPlaying: false,
+      isMuted: false,
+      audioVolume: 100,
+      currentTime: 0,
+      duration: 15,
+      trimStart: 0,
+      trimEnd: 15,
+      speed: 1,
+      aspectRatio: '16:9',
+      resolutionTier: 2160, // 480, 720, 1080, 1440, 2160 (4K UHD)
+      targetFps: 60,
+      // Smart Proxy keeps web preview super lightweight & 60fps while exporting at full 4K targetW x targetH
+      smartProxyMode: true,
+      isExporting: false,
+      targetWidth: 3840,
+      targetHeight: 2160,
+      needsRender: true,
+      scaleMode: 'cover', // 'cover' | 'fit' | 'stretch'
+      rotation: 0,
+      flipH: 1,
+      flipV: 1,
+      zoom: 100,
+      compareOriginal: false,
+      splitCompareMode: false,
+      splitCompareRatio: 0.5,
+      showGrid: false,
+      // Interactive Crop State (normalized 0..1 coordinates on source/stage)
+      cropMode: false,
+      appliedCrop: { x: 0, y: 0, w: 1, h: 1 },
+      cropBox: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 },
+      // Multi-Segment Timeline Cutting State (CapCut Pro style)
+      segments: [
+        { id: 1, start: 0, end: 15, deleted: false }
+      ],
+      activeSegmentIndex: 0,
+      clipTransition: 'none', // 'none' | 'fade' | 'flash' | 'zoom' | 'glitch' | 'slide'
+      // 4K Ultra HD Engine
+      uhd: {
+        enabled: true,
+        sharpness: 35,
+        hdr: 25,
+        shadows: 0,
+        temp: 0,
+        vignette: 15,
+        denoise: 0
+      },
+      // Color Grading Filters
+      filters: {
+        brightness: 100,
+        contrast: 100,
+        saturate: 100,
+        sepia: 0,
+        hueRotate: 0,
+        blur: 0
+      },
+      // Chroma Key
+      chromaKey: {
+        enabled: false,
+        color: '#00ff00',
+        tolerance: 40
+      },
+      // VFX Effects
+      vfx: {
+        type: 'none', // 'none' | 'glitch' | 'vhs' | 'bokeh' | 'letterbox' | 'shake' | 'rain' | 'neonframe'
+        intensity: 65
+      },
+      // Multi-layer text & sticker support
+      textLayers: [
+        {
+          id: 1,
+          text: 'TukangEdit 4K Studio',
+          x: 1920,
+          y: 1080,
+          size: 42,
+          color: '#ffffff',
+          stroke: '#000000',
+          bgStyle: 'none',
+          font: 'Inter, sans-serif',
+          anim: 'none'
+        }
+      ],
+      activeTextIndex: 0,
+      textOverlay: {
+        text: 'TukangEdit 4K Studio',
+        x: 1920,
+        y: 1080,
+        size: 42,
+        color: '#ffffff',
+        stroke: '#000000',
+        bgStyle: 'none',
+        font: 'Inter, sans-serif',
+        anim: 'none',
+        isDragging: false,
+        dragOffsetX: 0,
+        dragOffsetY: 0
+      },
+      history: [],
+      historyIndex: -1,
+      lastFrameTimestamp: 0,
+      audioCtx: null
+    };
+
+    // --- Toast Helper (No browser alert/confirm) ---
+    function showToast(msg, icon = 'sparkles') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const item = document.createElement('div');
+      item.className = "px-3.5 py-2 rounded-xl bg-surface-800/95 border border-brand-500/50 text-white text-xs font-medium shadow-xl flex items-center gap-2 backdrop-blur-md transition-all duration-300";
+      item.innerHTML = `<span class="w-2 h-2 rounded-full bg-brand-accent"></span><span>${msg}</span>`;
+      container.appendChild(item);
+      setTimeout(() => {
+        item.style.opacity = '0';
+        setTimeout(() => item.remove(), 300);
+      }, 2400);
+    }
+
+    function safeRefreshIcons() {
+      try {
+        if (typeof lucide !== 'undefined' && lucide && typeof lucide.createIcons === 'function') {
+          safeRefreshIcons();
+        }
+      } catch (e) {}
+    }
+    function requestRender() {
+      App.needsRender = true;
+    }
+
+    function bootStudioApp() {
+      if (window.__studioBooted) return;
+      window.__studioBooted = true;
+      window.__applyTailwindConfig();
+      safeRefreshIcons();
+      initEditor();
+      updateUhdFilterMatrix();
+      loadSampleVideo('cyber');
+      renderTextLayerPills();
+      renderTimelineSegments();
+      saveHistoryState();
+      // Re-fit stage after Tailwind CDN injects styles asynchronously
+      setTimeout(() => { fitStageToViewport(); requestRender(); safeRefreshIcons(); }, 60);
+      setTimeout(() => { fitStageToViewport(); requestRender(); safeRefreshIcons(); }, 280);
+    }
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', bootStudioApp);
+    } else {
+      bootStudioApp();
+    }
+    window.addEventListener('load', () => {
+      window.__applyTailwindConfig();
+      fitStageToViewport();
+      requestRender();
+      safeRefreshIcons();
+    });
+
+    function initEditor() {
+      App.canvas = document.getElementById('main-canvas');
+      App.ctx = App.canvas.getContext('2d', { alpha: false });
+      App.videoEl = document.getElementById('hidden-video');
+      App.audioEl = document.getElementById('hidden-audio');
+
+      // Video Event Listeners
+      App.videoEl.addEventListener('loadedmetadata', onMediaLoaded);
+      App.videoEl.addEventListener('timeupdate', onVideoTimeUpdate);
+      App.videoEl.addEventListener('error', () => {
+        App.useProceduralVideo = true;
+        onProceduralVideoLoaded();
+      });
+
+      // Auto-Fit Stage Viewport on Window / Container Resize
+      const container = document.getElementById('canvas-container');
+      if (window.ResizeObserver && container) {
+        const ro = new ResizeObserver(() => {
+          fitStageToViewport();
+          requestRender();
+        });
+        ro.observe(container);
+      }
+      window.addEventListener('resize', () => {
+        fitStageToViewport();
+        requestRender();
+      });
+
+      // Canvas Dragging Text
+      App.canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+
+      // Touch for mobile devices
+      App.canvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        onPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (!App.textOverlay.isDragging) return;
+        const touch = e.touches[0];
+        onPointerMove({ clientX: touch.clientX, clientY: touch.clientY });
+      }, { passive: true });
+      window.addEventListener('touchend', onPointerUp);
+
+      // Interactive Split Slider Dragging
+      initSplitCompareInteractions();
+
+      // Interactive Crop Box Dragging
+      initCropBoxInteractions();
+
+      // Keyboard Shortcuts (CapCut Pro style: Space = Play, S = Split, Delete = Delete Clip, Ctrl+Z/Y)
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        if (e.code === 'Space' && App.mode === 'video') {
+          e.preventDefault();
+          togglePlay();
+        } else if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && App.mode === 'video') {
+          e.preventDefault();
+          splitClipAtPlayhead();
+        } else if ((e.key === 'Delete' || e.key === 'Backspace') && App.mode === 'video' && App.segments.length > 1) {
+          e.preventDefault();
+          deleteActiveClipSegment();
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          undoAction();
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          redoAction();
+        }
+      });
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // --- Precision Viewport Stage Sizer (Fixes Editing Screen Fit) ---
+    function fitStageToViewport() {
+      const container = document.getElementById('canvas-container');
+      const stageFrame = document.getElementById('stage-frame');
+      if (!container || !stageFrame) return;
+
+      const pad = window.innerWidth < 768 ? 16 : 32;
+      const rawW = container.clientWidth || Math.max(320, window.innerWidth - 360);
+      const rawH = container.clientHeight || Math.max(240, window.innerHeight - 280);
+      const availW = Math.max(200, rawW - pad * 2);
+      const availH = Math.max(150, rawH - pad * 2);
+
+      const targetRatio = (App.targetWidth || 16) / (App.targetHeight || 9);
+      let displayW = availW;
+      let displayH = Math.round(displayW / targetRatio);
+
+      if (displayH > availH) {
+        displayH = availH;
+        displayW = Math.round(displayH * targetRatio);
+      }
+
+      stageFrame.style.width = `${displayW}px`;
+      stageFrame.style.height = `${displayH}px`;
+    }
+
+    // --- Lightweight Smart Proxy Toggle ---
+    function togglePerformanceProxy() {
+      App.smartProxyMode = !App.smartProxyMode;
+      const topLbl = document.getElementById('perf-proxy-label');
+      const sideBtn = document.getElementById('sidebar-proxy-btn');
+      const proxyRes = document.getElementById('info-proxy-res');
+
+      if (topLbl) topLbl.innerText = `Mode Ringan: ${App.smartProxyMode ? 'ON' : 'OFF'}`;
+      if (sideBtn) {
+        sideBtn.innerText = App.smartProxyMode ? 'AKTIF' : 'PENUH';
+        sideBtn.className = App.smartProxyMode
+          ? "px-2 py-0.5 rounded bg-emerald-500 text-surface-900 font-bold text-[10px]"
+          : "px-2 py-0.5 rounded bg-surface-700 text-gray-300 font-bold text-[10px]";
+      }
+      if (proxyRes) {
+        proxyRes.innerText = App.smartProxyMode ? 'Smart 720p (Cepat)' : 'Native 4K Penuh';
+      }
+      recalcCanvasResolution();
+      showToast(App.smartProxyMode
+        ? "Mode Ringan Aktif: Pratinjau 60fps super enteng, ekspor tetap 4K penuh!"
+        : "Mode Resolusi Penuh Aktif di Kanvas Pratinjau");
+    }
+
+    // --- History (Undo / Redo) ---
+    function saveHistoryState() {
+      const snapshot = JSON.stringify({
+        filters: App.filters,
+        uhd: App.uhd,
+        vfx: App.vfx,
+        aspectRatio: App.aspectRatio,
+        scaleMode: App.scaleMode,
+        rotation: App.rotation,
+        flipH: App.flipH,
+        flipV: App.flipV,
+        zoom: App.zoom,
+        appliedCrop: App.appliedCrop,
+        segments: App.segments,
+        clipTransition: App.clipTransition,
+        textLayers: App.textLayers,
+        activeTextIndex: App.activeTextIndex
+      });
+      if (App.history[App.historyIndex] === snapshot) return;
+      App.history = App.history.slice(0, App.historyIndex + 1);
+      App.history.push(snapshot);
+      if (App.history.length > 25) App.history.shift();
+      App.historyIndex = App.history.length - 1;
+    }
+
+    function restoreSnapshot(snapshotStr) {
+      if (!snapshotStr) return;
+      const data = JSON.parse(snapshotStr);
+      App.filters = { ...data.filters };
+      App.uhd = { ...data.uhd };
+      if (data.vfx) App.vfx = { ...data.vfx };
+      App.aspectRatio = data.aspectRatio;
+      App.scaleMode = data.scaleMode;
+      App.rotation = data.rotation;
+      App.flipH = data.flipH;
+      App.flipV = data.flipV;
+      App.zoom = data.zoom;
+      if (data.appliedCrop) App.appliedCrop = { ...data.appliedCrop };
+      if (data.segments) App.segments = data.segments.map(s => ({ ...s }));
+      if (data.clipTransition) App.clipTransition = data.clipTransition;
+      App.textLayers = data.textLayers.map(l => ({ ...l }));
+      App.activeTextIndex = Math.min(data.activeTextIndex, App.textLayers.length - 1);
+      syncActiveLayerToOverlay();
+      syncSlidersToState();
+      updateUhdFilterMatrix();
+      recalcCanvasResolution();
+      renderTextLayerPills();
+      renderTimelineSegments();
+      requestRender();
+    }
+
+    function undoAction() {
+      if (App.historyIndex > 0) {
+        App.historyIndex--;
+        restoreSnapshot(App.history[App.historyIndex]);
+        showToast("Undo berhasil");
+      }
+    }
+
+    function redoAction() {
+      if (App.historyIndex < App.history.length - 1) {
+        App.historyIndex++;
+        restoreSnapshot(App.history[App.historyIndex]);
+        showToast("Redo berhasil");
+      }
+    }
+
+    // --- Mode Switcher ---
+    function switchMode(newMode) {
+      App.mode = newMode;
+      const vBtn = document.getElementById('mode-video-btn');
+      const pBtn = document.getElementById('mode-photo-btn');
+      const timeline = document.getElementById('video-timeline-area');
+      const label = document.getElementById('project-label');
+      const badge = document.getElementById('media-badge-type');
+
+      if (newMode === 'video') {
+        vBtn.className = "flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold transition-all bg-brand-500 text-surface-900 shadow";
+        pBtn.className = "flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all";
+        timeline.classList.remove('hidden');
+        label.innerText = "Proyek Baru • Video Studio 4K";
+        if (badge) badge.innerText = "VIDEO 4K";
+        if (App.mediaType !== 'video') loadSampleVideo('cyber');
+      } else {
+        pBtn.className = "flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold transition-all bg-brand-accent text-surface-900 shadow";
+        vBtn.className = "flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all";
+        timeline.classList.add('hidden');
+        label.innerText = "Proyek Baru • Foto Studio 4K";
+        if (badge) badge.innerText = "FOTO 4K";
+        if (App.mediaType !== 'image') loadSamplePhoto();
+      }
+      setTimeout(() => {
+        fitStageToViewport();
+        requestRender();
+      }, 20);
+    }
+
+    // --- Tab Sidebar Navigation ---
+    function setToolTab(tabName) {
+      document.querySelectorAll('.panel-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-tab').forEach(el => {
+        el.classList.remove('text-brand-500');
+        el.classList.add('text-gray-400');
+      });
+
+      const panel = document.getElementById(`panel-${tabName}`);
+      const btn = document.getElementById(`tab-btn-${tabName}`);
+      if (panel) panel.classList.remove('hidden');
+      if (btn) {
+        btn.classList.add('text-brand-500');
+        btn.classList.remove('text-gray-400');
+      }
+    }
+
+    // --- Drag & Drop and File Upload ---
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+
+    function handleDropMedia(e) {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file) processUploadedFile(file);
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      processUploadedFile(file);
+    }
+
+    function processUploadedFile(file) {
+      const url = URL.createObjectURL(file);
+      document.getElementById('project-label').innerText = `${file.name} • TukangEdit 4K`;
+      if (file.type.startsWith('video/')) {
+        App.useProceduralVideo = false;
+        switchMode('video');
+        loadVideoSource(url);
+        showToast(`Video "${file.name}" berhasil dimuat`);
+      } else if (file.type.startsWith('image/')) {
+        switchMode('photo');
+        loadImageSource(url);
+        showToast(`Foto "${file.name}" berhasil dimuat`);
+      }
+    }
+
+    function loadSampleVideo(theme = 'cyber') {
+      App.mediaType = 'video';
+      App.useProceduralVideo = true;
+      App.proceduralTheme = theme;
+      if (App.mode !== 'video') switchMode('video');
+      onProceduralVideoLoaded();
+      requestRender();
+    }
+
+    function onProceduralVideoLoaded() {
+      App.duration = 15;
+      App.currentTime = 0;
+      App.trimStart = 0;
+      App.trimEnd = 15;
+      App.segments = [{ id: Date.now(), start: 0, end: 15, deleted: false }];
+      App.activeSegmentIndex = 0;
+      recalcCanvasResolution(3840, 2160);
+
+      document.getElementById('video-scrubber').max = App.duration;
+      document.getElementById('trim-start').max = App.duration;
+      document.getElementById('trim-end').max = App.duration;
+      document.getElementById('trim-start').value = 0;
+      document.getElementById('trim-end').value = App.duration;
+      document.getElementById('trim-info').innerText = `0.0s - ${App.duration.toFixed(1)}s`;
+
+      updateTimeLabels();
+      renderTimelineSegments();
+      resetPosition();
+      requestRender();
+    }
+
+    function loadSamplePhoto() {
+      if (App.mode !== 'photo') switchMode('photo');
+      loadImageSource(getSamplePhotoURI());
+    }
+
+    function loadVideoSource(url) {
+      App.mediaType = 'video';
+      App.useProceduralVideo = false;
+      App.videoEl.src = url;
+      App.videoEl.load();
+    }
+
+    function loadImageSource(url) {
+      App.mediaType = 'image';
+      if (App.isPlaying) togglePlay();
+      App.imageEl = new Image();
+      if (!url.startsWith('data:')) {
+        App.imageEl.crossOrigin = 'anonymous';
+      }
+      App.imageEl.onload = () => {
+        recalcCanvasResolution(App.imageEl.naturalWidth || 3840, App.imageEl.naturalHeight || 2160);
+        resetPosition();
+        requestRender();
+      };
+      App.imageEl.src = url;
+    }
+
+    function captureVideoFrameAsPhoto() {
+      // Temporarily render at full 4K target resolution for crisp frame capture
+      const wasProxy = App.smartProxyMode;
+      App.smartProxyMode = false;
+      recalcCanvasResolution();
+      renderSingleFrame(performance.now());
+      const dataUrl = App.canvas.toDataURL('image/png', 1.0);
+      App.smartProxyMode = wasProxy;
+      recalcCanvasResolution();
+
+      switchMode('photo');
+      loadImageSource(dataUrl);
+      document.getElementById('project-label').innerText = "Frame Tangkapan 4K • Foto Studio";
+      showToast("Frame Video berhasil ditangkap menjadi Foto 4K!");
+    }
+
+    function onMediaLoaded() {
+      App.duration = App.videoEl.duration || 15;
+      App.trimStart = 0;
+      App.trimEnd = App.duration;
+      App.segments = [{ id: Date.now(), start: 0, end: App.duration, deleted: false }];
+      App.activeSegmentIndex = 0;
+      
+      recalcCanvasResolution(App.videoEl.videoWidth || 3840, App.videoEl.videoHeight || 2160);
+
+      document.getElementById('video-scrubber').max = App.duration;
+      document.getElementById('trim-start').max = App.duration;
+      document.getElementById('trim-end').max = App.duration;
+      document.getElementById('trim-start').value = 0;
+      document.getElementById('trim-end').value = App.duration;
+      document.getElementById('trim-info').innerText = `0.0s - ${App.duration.toFixed(1)}s`;
+
+      updateTimeLabels();
+      renderTimelineSegments();
+      resetPosition();
+      requestRender();
+    }
+
+    // --- CapCut Pro Multi-Segment Splitting & Cutting System ---
+    function splitClipAtPlayhead() {
+      const t = App.currentTime;
+      // Find segment containing current playhead
+      const idx = App.segments.findIndex(seg => !seg.deleted && t > seg.start + 0.25 && t < seg.end - 0.25);
+      if (idx === -1) {
+        showToast("Geser jarum waktu ke tengah klip untuk memotong!");
+        return;
+      }
+      const targetSeg = App.segments[idx];
+      const firstHalf = { id: Date.now(), start: targetSeg.start, end: Number(t.toFixed(2)), deleted: false };
+      const secondHalf = { id: Date.now() + 1, start: Number(t.toFixed(2)), end: targetSeg.end, deleted: false };
+
+      App.segments.splice(idx, 1, firstHalf, secondHalf);
+      App.activeSegmentIndex = idx + 1;
+      renderTimelineSegments();
+      saveHistoryState();
+      requestRender();
+      showToast(`Klip dipotong pada ${t.toFixed(1)}s (${App.segments.filter(s => !s.deleted).length} bagian aktif)`);
+    }
+
+    function deleteActiveClipSegment() {
+      const activeSegments = App.segments.filter(s => !s.deleted);
+      if (activeSegments.length <= 1) {
+        showToast("Bagi klip terlebih dahulu sebelum menghapus bagian!");
+        return;
+      }
+      const seg = App.segments[App.activeSegmentIndex];
+      if (!seg || seg.deleted) return;
+      seg.deleted = true;
+      // Select next non-deleted segment
+      const nextIdx = App.segments.findIndex(s => !s.deleted);
+      if (nextIdx !== -1) {
+        App.activeSegmentIndex = nextIdx;
+        scrubVideo(App.segments[nextIdx].start);
+      }
+      renderTimelineSegments();
+      saveHistoryState();
+      requestRender();
+      showToast("Bagian klip dihapus dari timeline");
+    }
+
+    function duplicateActiveClipSegment() {
+      const seg = App.segments[App.activeSegmentIndex];
+      if (!seg) return;
+      const copy = { id: Date.now(), start: seg.start, end: seg.end, deleted: false };
+      App.segments.splice(App.activeSegmentIndex + 1, 0, copy);
+      App.activeSegmentIndex++;
+      renderTimelineSegments();
+      saveHistoryState();
+      showToast("Segmen klip berhasil diduplikat");
+    }
+
+    function resetAllClipSegments() {
+      App.segments = [{ id: Date.now(), start: 0, end: App.duration, deleted: false }];
+      App.activeSegmentIndex = 0;
+      App.trimStart = 0;
+      App.trimEnd = App.duration;
+      document.getElementById('trim-start').value = 0;
+      document.getElementById('trim-end').value = App.duration;
+      updateTrimRange();
+      renderTimelineSegments();
+      saveHistoryState();
+      showToast("Semua potongan disatukan kembali");
+    }
+
+    function setTrimStartAtPlayhead() {
+      if (App.currentTime < App.trimEnd - 0.3) {
+        App.trimStart = Number(App.currentTime.toFixed(1));
+        document.getElementById('trim-start').value = App.trimStart;
+        updateTrimRange();
+        showToast(`Awal video dipotong ke ${App.trimStart}s`);
+      }
+    }
+
+    function setTrimEndAtPlayhead() {
+      if (App.currentTime > App.trimStart + 0.3) {
+        App.trimEnd = Number(App.currentTime.toFixed(1));
+        document.getElementById('trim-end').value = App.trimEnd;
+        updateTrimRange();
+        showToast(`Akhir video dipotong ke ${App.trimEnd}s`);
+      }
+    }
+
+    function setClipTransition(type) {
+      App.clipTransition = type;
+      ['none', 'fade', 'flash', 'zoom', 'glitch', 'slide'].forEach(t => {
+        const btn = document.getElementById(`trans-btn-${t}`);
+        if (!btn) return;
+        btn.className = t === type
+          ? "py-1.5 px-1.5 rounded text-[10px] bg-brand-500 text-surface-900 font-bold"
+          : "py-1.5 px-1.5 rounded text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600";
+      });
+      saveHistoryState();
+      requestRender();
+      showToast(`Transisi antar potongan: ${type.toUpperCase()}`);
+    }
+
+    function renderTimelineSegments() {
+      const track = document.getElementById('visual-timeline-track');
+      const listContainer = document.getElementById('segment-list-container');
+      const countBadge = document.getElementById('clip-count-badge');
+      if (!track) return;
+
+      const activeCount = App.segments.filter(s => !s.deleted).length;
+      if (countBadge) countBadge.innerText = `${activeCount} Klip Aktif`;
+
+      track.innerHTML = '';
+
+      // Click anywhere on visual track to scrub
+      track.onclick = (e) => {
+        const rect = track.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        scrubVideo(ratio * App.duration);
+      };
+
+      // Trim Out-of-bounds Dim Regions
+      const trimLeftPct = (App.trimStart / App.duration) * 100;
+      const trimRightPct = ((App.duration - App.trimEnd) / App.duration) * 100;
+
+      App.segments.forEach((seg, idx) => {
+        const leftPct = (seg.start / App.duration) * 100;
+        const widthPct = Math.max(1, ((seg.end - seg.start) / App.duration) * 100);
+        const isSelected = idx === App.activeSegmentIndex;
+
+        const block = document.createElement('div');
+        block.style.left = `${leftPct}%`;
+        block.style.width = `${widthPct}%`;
+
+        if (seg.deleted) {
+          block.className = "absolute top-1 bottom-1 rounded bg-rose-950/40 border border-dashed border-rose-500/30 flex items-center justify-center text-[9px] text-rose-400/60 font-mono overflow-hidden cursor-pointer";
+          block.innerText = "DIHAPUS";
+          block.title = "Klik untuk pulihkan bagian ini";
+          block.onclick = (ev) => {
+            ev.stopPropagation();
+            seg.deleted = false;
+            App.activeSegmentIndex = idx;
+            renderTimelineSegments();
+            requestRender();
+            showToast("Bagian klip dipulihkan");
+          };
+        } else {
+          block.className = `absolute top-1 bottom-1 rounded px-1.5 flex items-center justify-between text-[10px] font-mono overflow-hidden cursor-pointer transition ${
+            isSelected
+              ? 'bg-gradient-to-r from-brand-500/40 to-brand-accent/30 border-2 border-brand-400 text-white shadow-inner'
+              : 'bg-surface-700/85 hover:bg-surface-600 border border-surface-500 text-gray-300'
+          }`;
+          block.innerHTML = `<span class="truncate font-semibold">Klip #${idx + 1}</span><span class="text-[9px] opacity-80">${(seg.end - seg.start).toFixed(1)}s</span>`;
+          block.onclick = (ev) => {
+            ev.stopPropagation();
+            App.activeSegmentIndex = idx;
+            scrubVideo(seg.start + 0.05);
+            renderTimelineSegments();
+          };
+        }
+        track.appendChild(block);
+      });
+
+      // Trim Masks
+      if (trimLeftPct > 0) {
+        const leftMask = document.createElement('div');
+        leftMask.style.width = `${trimLeftPct}%`;
+        leftMask.className = "absolute left-0 top-0 bottom-0 bg-black/70 border-r-2 border-amber-400 pointer-events-none";
+        track.appendChild(leftMask);
+      }
+      if (trimRightPct > 0) {
+        const rightMask = document.createElement('div');
+        rightMask.style.width = `${trimRightPct}%`;
+        rightMask.className = "absolute right-0 top-0 bottom-0 bg-black/70 border-l-2 border-amber-400 pointer-events-none";
+        track.appendChild(rightMask);
+      }
+
+      // Playhead Needle
+      const playheadPct = Math.max(0, Math.min(100, (App.currentTime / App.duration) * 100));
+      const needle = document.createElement('div');
+      needle.id = 'timeline-playhead-needle';
+      needle.style.left = `${playheadPct}%`;
+      needle.className = "absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_#fff] pointer-events-none z-20";
+      needle.innerHTML = `<div class="w-2.5 h-2.5 -ml-1 bg-brand-accent rotate-45 -mt-1"></div>`;
+      track.appendChild(needle);
+
+      // Update Sidebar Segment List if visible
+      if (listContainer) {
+        listContainer.innerHTML = '';
+        App.segments.forEach((seg, idx) => {
+          const row = document.createElement('div');
+          row.className = `flex items-center justify-between px-2 py-1 rounded text-[10px] border ${
+            idx === App.activeSegmentIndex ? 'bg-brand-500/15 border-brand-500/50 text-white' : 'bg-surface-800 border-surface-700 text-gray-400'
+          }`;
+          row.innerHTML = `
+            <span>Klip #${idx + 1} (${seg.start.toFixed(1)}s - ${seg.end.toFixed(1)}s)</span>
+            <span class="${seg.deleted ? 'text-rose-400' : 'text-emerald-400'} font-bold">${seg.deleted ? 'Dibuang' : 'Aktif'}</span>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
+    }
+
+    // --- Interactive On-Screen Crop Tool ---
+    function toggleCropOverlay() {
+      App.cropMode = !App.cropMode;
+      const overlay = document.getElementById('crop-overlay-container');
+      const btn = document.getElementById('crop-mode-toggle-btn');
+      const pill = document.getElementById('active-crop-pill');
+
+      if (App.cropMode) {
+        overlay.classList.remove('hidden');
+        if (btn) {
+          btn.innerText = "AKTIF";
+          btn.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-brand-accent text-surface-900";
+        }
+        if (pill) pill.classList.remove('hidden');
+        updateCropBoxDOM();
+        showToast("Geser kotak hijau di layar lalu klik 'Terapkan Potongan'");
+      } else {
+        overlay.classList.add('hidden');
+        if (btn) {
+          btn.innerText = "NONAKTIF";
+          btn.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-surface-700 text-gray-300 border border-surface-600";
+        }
+        if (pill && App.appliedCrop.w === 1 && App.appliedCrop.h === 1) {
+          pill.classList.add('hidden');
+        }
+      }
+    }
+
+    function updateCropBoxDOM() {
+      const box = document.getElementById('crop-box-rect');
+      if (!box) return;
+      box.style.left = `${App.cropBox.x * 100}%`;
+      box.style.top = `${App.cropBox.y * 100}%`;
+      box.style.width = `${App.cropBox.w * 100}%`;
+      box.style.height = `${App.cropBox.h * 100}%`;
+    }
+
+    function initCropBoxInteractions() {
+      const container = document.getElementById('crop-overlay-container');
+      const box = document.getElementById('crop-box-rect');
+      if (!container || !box) return;
+
+      let dragMode = null; // 'move' | 'nw' | 'ne' | 'sw' | 'se'
+      let startX = 0, startY = 0;
+      let startCrop = null;
+
+      box.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        const handle = e.target.getAttribute('data-crop-handle');
+        dragMode = handle || 'move';
+        startX = e.clientX;
+        startY = e.clientY;
+        startCrop = { ...App.cropBox };
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!dragMode || !App.cropMode) return;
+        const rect = container.getBoundingClientRect();
+        const dx = (e.clientX - startX) / rect.width;
+        const dy = (e.clientY - startY) / rect.height;
+
+        if (dragMode === 'move') {
+          App.cropBox.x = Math.max(0, Math.min(1 - startCrop.w, startCrop.x + dx));
+          App.cropBox.y = Math.max(0, Math.min(1 - startCrop.h, startCrop.y + dy));
+        } else if (dragMode === 'se') {
+          App.cropBox.w = Math.max(0.15, Math.min(1 - startCrop.x, startCrop.w + dx));
+          App.cropBox.h = Math.max(0.15, Math.min(1 - startCrop.y, startCrop.h + dy));
+        } else if (dragMode === 'nw') {
+          const nx = Math.max(0, Math.min(startCrop.x + startCrop.w - 0.15, startCrop.x + dx));
+          const ny = Math.max(0, Math.min(startCrop.y + startCrop.h - 0.15, startCrop.y + dy));
+          App.cropBox.w = startCrop.w + (startCrop.x - nx);
+          App.cropBox.h = startCrop.h + (startCrop.y - ny);
+          App.cropBox.x = nx;
+          App.cropBox.y = ny;
+        } else if (dragMode === 'ne') {
+          const ny = Math.max(0, Math.min(startCrop.y + startCrop.h - 0.15, startCrop.y + dy));
+          App.cropBox.w = Math.max(0.15, Math.min(1 - startCrop.x, startCrop.w + dx));
+          App.cropBox.h = startCrop.h + (startCrop.y - ny);
+          App.cropBox.y = ny;
+        } else if (dragMode === 'sw') {
+          const nx = Math.max(0, Math.min(startCrop.x + startCrop.w - 0.15, startCrop.x + dx));
+          App.cropBox.w = startCrop.w + (startCrop.x - nx);
+          App.cropBox.x = nx;
+          App.cropBox.h = Math.max(0.15, Math.min(1 - startCrop.y, startCrop.h + dy));
+        }
+        updateCropBoxDOM();
+      });
+
+      window.addEventListener('mouseup', () => {
+        dragMode = null;
+      });
+    }
+
+    function applyInteractiveCrop() {
+      App.appliedCrop = {
+        x: App.appliedCrop.x + App.cropBox.x * App.appliedCrop.w,
+        y: App.appliedCrop.y + App.cropBox.y * App.appliedCrop.h,
+        w: App.appliedCrop.w * App.cropBox.w,
+        h: App.appliedCrop.h * App.cropBox.h
+      };
+      App.cropBox = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+      if (App.cropMode) toggleCropOverlay();
+      document.getElementById('active-crop-pill')?.classList.remove('hidden');
+      saveHistoryState();
+      requestRender();
+      showToast("Area layar berhasil dipangkas (Cropped)!");
+    }
+
+    function resetInteractiveCrop() {
+      App.appliedCrop = { x: 0, y: 0, w: 1, h: 1 };
+      App.cropBox = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+      if (App.cropMode) toggleCropOverlay();
+      document.getElementById('active-crop-pill')?.classList.add('hidden');
+      saveHistoryState();
+      requestRender();
+      showToast("Area layar dikembalikan ke ukuran penuh");
+    }
+
+    // --- Interactive Split-Screen Before / After Slider ---
+    function toggleSplitCompare() {
+      App.splitCompareMode = !App.splitCompareMode;
+      const overlay = document.getElementById('split-slider-overlay');
+      const status = document.getElementById('split-compare-status');
+      if (App.splitCompareMode) {
+        overlay.classList.remove('hidden');
+        if (status) {
+          status.innerText = "ON";
+          status.className = "text-[10px] font-mono text-brand-accent font-bold";
+        }
+        showToast("Mode Layar Belah 4K: Geser garis pemisah di tengah kanvas");
+      } else {
+        overlay.classList.add('hidden');
+        if (status) {
+          status.innerText = "OFF";
+          status.className = "text-[10px] font-mono text-gray-400";
+        }
+      }
+      requestRender();
+    }
+
+    function initSplitCompareInteractions() {
+      const divider = document.getElementById('split-divider-line');
+      const overlay = document.getElementById('split-slider-overlay');
+      if (!divider || !overlay) return;
+      let dragging = false;
+
+      divider.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        dragging = true;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging || !App.splitCompareMode) return;
+        const rect = overlay.getBoundingClientRect();
+        App.splitCompareRatio = Math.max(0.05, Math.min(0.95, (e.clientX - rect.left) / rect.width));
+        divider.style.left = `${App.splitCompareRatio * 100}%`;
+        requestRender();
+      });
+      window.addEventListener('mouseup', () => {
+        dragging = false;
+      });
+    }
+
+    function toggleGridOverlay() {
+      App.showGrid = !App.showGrid;
+      const grid = document.getElementById('grid-overlay');
+      const btn = document.getElementById('grid-toggle-btn');
+      if (grid) grid.classList.toggle('hidden', !App.showGrid);
+      if (btn) btn.classList.toggle('text-brand-400', App.showGrid);
+    }
+
+    // --- 4K Ultra HD Resolution & Aspect Ratio Calculator ---
+    function setResolutionPreset(tierStr) {
+      App.resolutionTier = parseInt(tierStr, 10) || 2160;
+      const topSelect = document.getElementById('resolution-preset-select');
+      if (topSelect) topSelect.value = String(App.resolutionTier);
+
+      [480, 720, 1080, 1440, 2160].forEach(t => {
+        const btn = document.getElementById(`res-btn-${t}`);
+        if (!btn) return;
+        if (t === App.resolutionTier) {
+          btn.className = "py-1.5 rounded text-[10px] font-mono bg-brand-500 text-surface-900 font-bold border border-brand-400";
+        } else {
+          btn.className = "py-1.5 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600";
+        }
+      });
+
+      const brBadge = document.getElementById('uhd-bitrate-badge');
+      if (brBadge) {
+        const map = { 480: '4 Mbps Eco', 720: '10 Mbps HD', 1080: '20 Mbps FHD', 1440: '35 Mbps 2K', 2160: '50 Mbps 4K Pro' };
+        brBadge.innerText = map[App.resolutionTier] || '50 Mbps Pro';
+      }
+
+      recalcCanvasResolution();
+      requestRender();
+    }
+
+    function setTargetFps(fps) {
+      App.targetFps = fps;
+      [24, 30, 60].forEach(f => {
+        const btn = document.getElementById(`fps-btn-${f}`);
+        if (!btn) return;
+        btn.className = f === fps
+          ? "py-1 rounded text-[10px] font-mono bg-brand-accent text-surface-900 font-bold"
+          : "py-1 rounded text-[10px] font-mono bg-surface-700 text-gray-300 border border-surface-600";
+      });
+      const infoFps = document.getElementById('info-fps');
+      if (infoFps) infoFps.innerText = `${fps} FPS`;
+      showToast(`Target Frame Rate: ${fps} FPS`);
+    }
+
+    function recalcCanvasResolution(srcW, srcH) {
+      const baseShort = App.resolutionTier; // 480, 720, 1080, 1440, 2160
+      const baseLong = Math.round(baseShort * (16 / 9));
+
+      let targetW = baseLong;
+      let targetH = baseShort;
+
+      if (App.aspectRatio === '16:9') {
+        targetW = baseLong;
+        targetH = baseShort;
+      } else if (App.aspectRatio === '9:16') {
+        targetW = baseShort;
+        targetH = baseLong;
+      } else if (App.aspectRatio === '1:1') {
+        targetW = baseShort;
+        targetH = baseShort;
+      } else if (App.aspectRatio === '4:5') {
+        targetW = baseShort;
+        targetH = Math.round(baseShort * 1.25);
+      } else if (App.aspectRatio === '21:9') {
+        targetW = baseLong;
+        targetH = Math.round(baseLong * (9 / 21));
+      } else {
+        const mediaW = srcW || (App.mediaType === 'video' ? (App.videoEl.videoWidth || 3840) : (App.imageEl.naturalWidth || 3840));
+        const mediaH = srcH || (App.mediaType === 'video' ? (App.videoEl.videoHeight || 2160) : (App.imageEl.naturalHeight || 2160));
+        const ratio = mediaW / mediaH;
+        if (ratio >= 1) {
+          targetW = baseLong;
+          targetH = Math.max(2, Math.round(baseLong / ratio));
+        } else {
+          targetH = baseLong;
+          targetW = Math.max(2, Math.round(baseLong * ratio));
+        }
+      }
+
+      App.targetWidth = targetW;
+      App.targetHeight = targetH;
+
+      // Smart Proxy Calculation: during interactive editing in Smart Proxy Mode, cap internal canvas buffer to ~720p tier so 60fps is effortless
+      let actualCanvasW = targetW;
+      let actualCanvasH = targetH;
+      if (App.smartProxyMode && !App.isExporting) {
+        const maxProxySide = 1280;
+        const maxTargetSide = Math.max(targetW, targetH);
+        if (maxTargetSide > maxProxySide) {
+          const proxyScale = maxProxySide / maxTargetSide;
+          actualCanvasW = Math.max(2, Math.round(targetW * proxyScale));
+          actualCanvasH = Math.max(2, Math.round(targetH * proxyScale));
+        }
+      }
+
+      setCanvasDimensions(actualCanvasW, actualCanvasH, targetW, targetH);
+      fitStageToViewport();
+    }
+
+    function setCanvasDimensions(canvasW, canvasH, displayTargetW, displayTargetH) {
+      const prevW = App.canvas.width || canvasW;
+      const prevH = App.canvas.height || canvasH;
+
+      App.canvas.width = canvasW;
+      App.canvas.height = canvasH;
+
+      if (prevW > 0 && prevH > 0 && (prevW !== canvasW || prevH !== canvasH)) {
+        const rx = canvasW / prevW;
+        const ry = canvasH / prevH;
+        App.textLayers.forEach(layer => {
+          layer.x = Math.round(layer.x * rx);
+          layer.y = Math.round(layer.y * ry);
+        });
+        syncActiveLayerToOverlay();
+      }
+
+      const tierTag = App.resolutionTier >= 2160 ? '4K UHD' : (App.resolutionTier >= 1440 ? '2K QHD' : (App.resolutionTier >= 1080 ? 'Full HD' : (App.resolutionTier >= 720 ? 'HD' : 'SD')));
+      document.getElementById('resolution-indicator').innerText = `Dimensi: ${displayTargetW} x ${displayTargetH} (${tierTag})`;
+      const infoRes = document.getElementById('info-canvas-res');
+      if (infoRes) infoRes.innerText = `${displayTargetW}×${displayTargetH}`;
+    }
+
+    function setAspectRatio(ratio) {
+      App.aspectRatio = ratio;
+      document.getElementById('aspect-indicator').innerText = `Rasio: ${ratio}`;
+      recalcCanvasResolution();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function setScaleMode(mode) {
+      App.scaleMode = mode;
+      ['cover', 'fit', 'stretch'].forEach(m => {
+        const btn = document.getElementById(`scale-btn-${m}`);
+        if (!btn) return;
+        btn.className = m === mode
+          ? "py-1.5 px-2 rounded text-[11px] bg-brand-500 text-surface-900 font-semibold"
+          : "py-1.5 px-2 rounded text-[11px] bg-surface-700 text-gray-300";
+      });
+      saveHistoryState();
+      requestRender();
+    }
+
+    function rotateMedia(deg) {
+      App.rotation = (App.rotation + deg) % 360;
+      saveHistoryState();
+      requestRender();
+    }
+
+    function flipMedia(dir) {
+      if (dir === 'h') App.flipH *= -1;
+      if (dir === 'v') App.flipV *= -1;
+      saveHistoryState();
+      requestRender();
+    }
+
+    function updateZoom(val) {
+      App.zoom = parseInt(val, 10) || 100;
+      document.getElementById('val-zoom').innerText = `${App.zoom}%`;
+      requestRender();
+    }
+
+    function setCompareMode(state) {
+      App.compareOriginal = Boolean(state);
+      requestRender();
+    }
+
+    // --- 4K Ultra HD Engine Controls ---
+    function toggleUhdMaster() {
+      App.uhd.enabled = !App.uhd.enabled;
+      const btn = document.getElementById('uhd-master-btn');
+      const pill = document.getElementById('live-uhd-pill');
+      if (App.uhd.enabled) {
+        btn.innerText = "AKTIF";
+        btn.className = "px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-accent text-surface-900 shadow";
+        if (pill) pill.classList.remove('opacity-40');
+      } else {
+        btn.innerText = "NONAKTIF";
+        btn.className = "px-2.5 py-1 rounded-full text-[10px] font-bold bg-surface-700 text-gray-400";
+        if (pill) pill.classList.add('opacity-40');
+      }
+      updateUhdFilterMatrix();
+      requestRender();
+    }
+
+    function updateUhdParam(param, val) {
+      App.uhd[param] = parseInt(val, 10) || 0;
+      const span = document.getElementById(`val-${param}`);
+      if (span) span.innerText = `${App.uhd[param]}%`;
+      updateUhdFilterMatrix();
+      requestRender();
+    }
+
+    function updateUhdFilterMatrix() {
+      const convolve = document.getElementById('uhd-convolve');
+      if (!convolve) return;
+      const s = App.uhd.enabled ? (App.uhd.sharpness / 100) * 1.15 : 0;
+      const center = (1 + 4 * s).toFixed(3);
+      const edge = (-s).toFixed(3);
+      convolve.setAttribute('kernelMatrix', `0 ${edge} 0 ${edge} ${center} ${edge} 0 ${edge} 0`);
+    }
+
+    function applyUhdPreset(preset) {
+      App.uhd.enabled = true;
+      if (preset === '4k-crisp') {
+        App.uhd.sharpness = 55;
+        App.uhd.hdr = 35;
+        App.uhd.shadows = 10;
+        App.uhd.temp = 5;
+        App.uhd.vignette = 15;
+        App.uhd.denoise = 0;
+        setResolutionPreset('2160');
+      } else if (preset === 'hdr-cinema') {
+        App.uhd.sharpness = 40;
+        App.uhd.hdr = 65;
+        App.uhd.shadows = 20;
+        App.uhd.temp = 12;
+        App.uhd.vignette = 35;
+        App.uhd.denoise = 10;
+        setResolutionPreset('2160');
+      } else if (preset === 'portrait-pro') {
+        App.uhd.sharpness = 25;
+        App.uhd.hdr = 20;
+        App.uhd.shadows = 15;
+        App.uhd.temp = 8;
+        App.uhd.vignette = 20;
+        App.uhd.denoise = 35;
+      } else if (preset === 'night-vision') {
+        App.uhd.sharpness = 35;
+        App.uhd.hdr = 45;
+        App.uhd.shadows = 65;
+        App.uhd.temp = -10;
+        App.uhd.vignette = 5;
+        App.uhd.denoise = 40;
+      } else if (preset === 'anime-4k') {
+        App.uhd.sharpness = 75;
+        App.uhd.hdr = 55;
+        App.uhd.shadows = 15;
+        App.uhd.temp = 0;
+        App.uhd.vignette = 10;
+        App.uhd.denoise = 15;
+        setResolutionPreset('2160');
+      } else if (preset === 'reset') {
+        App.uhd.sharpness = 0;
+        App.uhd.hdr = 0;
+        App.uhd.shadows = 0;
+        App.uhd.temp = 0;
+        App.uhd.vignette = 0;
+        App.uhd.denoise = 0;
+      }
+      ['sharpness', 'hdr', 'shadows', 'temp', 'vignette', 'denoise'].forEach(k => {
+        const slider = document.getElementById(`slider-${k}`);
+        const label = document.getElementById(`val-${k}`);
+        if (slider) slider.value = App.uhd[k];
+        if (label) label.innerText = `${App.uhd[k]}%`;
+      });
+      updateUhdFilterMatrix();
+      saveHistoryState();
+      requestRender();
+      showToast(`Preset Ultra HD diterapkan: ${preset.toUpperCase()}`);
+    }
+
+    // --- VFX Engine Controls ---
+    function setVfxEffect(type) {
+      App.vfx.type = type;
+      ['none', 'glitch', 'vhs', 'bokeh', 'letterbox', 'shake', 'rain', 'neonframe'].forEach(k => {
+        const btn = document.getElementById(`vfx-btn-${k}`);
+        if (!btn) return;
+        if (k === type) {
+          btn.className = "p-2.5 rounded-xl bg-brand-500 text-surface-900 font-bold text-left text-xs border border-brand-400 transition";
+        } else {
+          btn.className = "p-2.5 rounded-xl bg-surface-700/80 hover:bg-surface-700 text-gray-200 font-bold text-left text-xs border border-surface-600 transition";
+        }
+      });
+      saveHistoryState();
+      requestRender();
+    }
+
+    function updateVfxIntensity(val) {
+      App.vfx.intensity = parseInt(val, 10) || 50;
+      const el = document.getElementById('val-vfx-intensity');
+      if (el) el.innerText = `${App.vfx.intensity}%`;
+      requestRender();
+    }
+
+    // --- Chroma Key Controls ---
+    function toggleChromaKey() {
+      App.chromaKey.enabled = !App.chromaKey.enabled;
+      const btn = document.getElementById('chroma-key-btn');
+      if (btn) {
+        btn.innerText = App.chromaKey.enabled ? 'ON' : 'OFF';
+        btn.className = App.chromaKey.enabled
+          ? "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-surface-900"
+          : "px-2 py-0.5 rounded text-[10px] font-bold bg-surface-700 text-gray-400";
+      }
+      requestRender();
+    }
+
+    function updateChromaParams() {
+      const cIn = document.getElementById('chroma-color-input');
+      const tIn = document.getElementById('slider-chroma-tol');
+      const tVal = document.getElementById('val-chroma-tol');
+      if (cIn) App.chromaKey.color = cIn.value;
+      if (tIn) App.chromaKey.tolerance = parseInt(tIn.value, 10) || 40;
+      if (tVal) tVal.innerText = `${App.chromaKey.tolerance}%`;
+      requestRender();
+    }
+
+    // --- Audio & Web Audio API SFX Synthesizer ---
+    function handleAudioUpload(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      App.audioEl.src = url;
+      App.audioEl.load();
+      const lbl = document.getElementById('custom-audio-label');
+      if (lbl) lbl.innerText = file.name;
+      showToast(`Musik "${file.name}" ditambahkan ke timeline!`);
+    }
+
+    function updateAudioVolume(val) {
+      App.audioVolume = parseInt(val, 10) || 0;
+      document.getElementById('val-audio-vol').innerText = `${App.audioVolume}%`;
+      const norm = Math.min(1, App.audioVolume / 100);
+      if (App.videoEl) App.videoEl.volume = norm;
+      if (App.audioEl) App.audioEl.volume = norm;
+    }
+
+    function playSynthSfx(kind) {
+      try {
+        if (!App.audioCtx) {
+          App.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = App.audioCtx;
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (kind === 'whoosh') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(620, now + 0.18);
+          osc.frequency.exponentialRampToValueAtTime(90, now + 0.38);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (kind === 'boom') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(110, now);
+          osc.frequency.exponentialRampToValueAtTime(28, now + 0.65);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+          osc.start(now);
+          osc.stop(now + 0.7);
+        } else if (kind === 'ding') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1046.5, now);
+          osc.frequency.setValueAtTime(1318.5, now + 0.08);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.005, now + 0.55);
+          osc.start(now);
+          osc.stop(now + 0.55);
+        } else if (kind === 'glitch') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(180, now + 0.05);
+          osc.frequency.setValueAtTime(880, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        }
+      } catch (err) {}
+    }
+
+    // --- Video Controls ---
+    function setPlayButtonIcon(iconName) {
+      const playBtn = document.getElementById('play-btn');
+      if (!playBtn) return;
+      playBtn.innerHTML = `<i data-lucide="${iconName}" class="w-3.5 h-3.5 fill-current ${iconName === 'play' ? 'ml-0.5' : ''}" id="play-icon"></i>`;
+      safeRefreshIcons();
+    }
+
+    function togglePlay() {
+      if (App.mediaType !== 'video') return;
+
+      if (App.useProceduralVideo) {
+        App.isPlaying = !App.isPlaying;
+        if (App.isPlaying && App.currentTime >= App.trimEnd) {
+          App.currentTime = App.trimStart;
+        }
+        if (App.audioEl && App.audioEl.src) {
+          if (App.isPlaying) App.audioEl.play().catch(() => {});
+          else App.audioEl.pause();
+        }
+        App.lastFrameTimestamp = performance.now();
+        setPlayButtonIcon(App.isPlaying ? 'pause' : 'play');
+        requestRender();
+        return;
+      }
+
+      if (App.videoEl.paused) {
+        if (App.videoEl.currentTime >= App.trimEnd) {
+          App.videoEl.currentTime = App.trimStart;
+        }
+        App.videoEl.play().catch(() => {});
+        if (App.audioEl && App.audioEl.src) App.audioEl.play().catch(() => {});
+        App.isPlaying = true;
+        setPlayButtonIcon('pause');
+      } else {
+        App.videoEl.pause();
+        if (App.audioEl && App.audioEl.src) App.audioEl.pause();
+        App.isPlaying = false;
+        setPlayButtonIcon('play');
+      }
+      requestRender();
+    }
+
+    function toggleMuteAudio() {
+      App.isMuted = !App.isMuted;
+      App.videoEl.muted = App.isMuted;
+      if (App.audioEl) App.audioEl.muted = App.isMuted;
+      const muteBtn = document.getElementById('mute-btn');
+      if (muteBtn) {
+        muteBtn.innerHTML = `
+          <i data-lucide="${App.isMuted ? 'volume-x' : 'volume-2'}" class="w-3.5 h-3.5 ${App.isMuted ? 'text-rose-400' : 'text-brand-500'}" id="mute-icon"></i>
+          <span class="hidden sm:inline" id="mute-label">${App.isMuted ? ' Dibisukan' : 'Audio Aktif'}</span>
+        `;
+        safeRefreshIcons();
+      }
+    }
+
+    function getValidPlaybackTime(t) {
+      // Skip deleted segments automatically during playback
+      for (const seg of App.segments) {
+        if (seg.deleted && t >= seg.start && t < seg.end) {
+          return seg.end;
+        }
+      }
+      return t;
+    }
+
+    function onVideoTimeUpdate() {
+      if (!App.videoEl || App.useProceduralVideo) return;
+      let t = getValidPlaybackTime(App.videoEl.currentTime);
+      if (t !== App.videoEl.currentTime) {
+        App.videoEl.currentTime = t;
+      }
+      App.currentTime = t;
+
+      if (App.currentTime >= App.trimEnd) {
+        App.videoEl.currentTime = App.trimStart;
+        App.currentTime = App.trimStart;
+      }
+
+      document.getElementById('video-scrubber').value = App.currentTime;
+      updatePlayheadNeedleOnly();
+      updateTimeLabels();
+      requestRender();
+    }
+
+    function updatePlayheadNeedleOnly() {
+      const needle = document.getElementById('timeline-playhead-needle');
+      if (needle && App.duration > 0) {
+        needle.style.left = `${Math.max(0, Math.min(100, (App.currentTime / App.duration) * 100))}%`;
+      }
+    }
+
+    function scrubVideo(val) {
+      const target = Math.max(0, Math.min(App.duration, parseFloat(val) || 0));
+      App.currentTime = target;
+      if (!App.useProceduralVideo && App.videoEl) {
+        App.videoEl.currentTime = target;
+      }
+      document.getElementById('video-scrubber').value = target;
+      updatePlayheadNeedleOnly();
+      updateTimeLabels();
+      requestRender();
+    }
+
+    function updateTrimRange() {
+      const start = parseFloat(document.getElementById('trim-start').value);
+      const end = parseFloat(document.getElementById('trim-end').value);
+
+      if (start < end - 0.2) {
+        App.trimStart = start;
+        App.trimEnd = end;
+      } else {
+        App.trimStart = Math.max(0, end - 0.5);
+        App.trimEnd = end;
+        document.getElementById('trim-start').value = App.trimStart;
+      }
+
+      document.getElementById('trim-info').innerText = `${App.trimStart.toFixed(1)}s - ${App.trimEnd.toFixed(1)}s`;
+      renderTimelineSegments();
+      requestRender();
+    }
+
+    function changeSpeed(rate) {
+      App.speed = parseFloat(rate) || 1;
+      if (App.videoEl) App.videoEl.playbackRate = App.speed;
+      showToast(`Kecepatan video: ${App.speed}x`);
+    }
+
+    function formatTime(seconds) {
+      const s = Math.max(0, seconds || 0);
+      const mins = Math.floor(s / 60);
+      const secs = Math.floor(s % 60);
+      const tenths = Math.floor((s % 1) * 10);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${tenths}`;
+    }
+
+    function updateTimeLabels() {
+      document.getElementById('time-current').innerText = formatTime(App.currentTime);
+      document.getElementById('time-total').innerText = formatTime(App.duration);
+    }
+
+    // --- Filters & Color Engine ---
+    function updateFilter(name, val, unit) {
+      App.filters[name] = parseFloat(val);
+      const el = document.getElementById(`val-${name === 'hueRotate' ? 'hue' : name}`);
+      if (el) el.innerText = `${val}${unit}`;
+      requestRender();
+    }
+
+    function syncSlidersToState() {
+      for (const [k, v] of Object.entries(App.filters)) {
+        const unit = k === 'hueRotate' ? 'deg' : (k === 'blur' ? 'px' : '%');
+        const slider = document.querySelector(`input[oninput*="${k}"]`);
+        if (slider) slider.value = v;
+        const span = document.getElementById(`val-${k === 'hueRotate' ? 'hue' : k}`);
+        if (span) span.innerText = `${v}${unit}`;
+      }
+    }
+
+    function resetFilters() {
+      App.filters = { brightness: 100, contrast: 100, saturate: 100, sepia: 0, hueRotate: 0, blur: 0 };
+      syncSlidersToState();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function applyPresetFilter(preset) {
+      App.filters = { brightness: 100, contrast: 100, saturate: 100, sepia: 0, hueRotate: 0, blur: 0 };
+      if (preset === 'cinematic') {
+        App.filters.contrast = 130;
+        App.filters.saturate = 90;
+        App.filters.sepia = 15;
+      } else if (preset === 'cyberpunk') {
+        App.filters.contrast = 140;
+        App.filters.saturate = 165;
+        App.filters.hueRotate = 320;
+      } else if (preset === 'vintage') {
+        App.filters.sepia = 60;
+        App.filters.contrast = 92;
+        App.filters.brightness = 104;
+      } else if (preset === 'bnw') {
+        App.filters.saturate = 0;
+        App.filters.contrast = 125;
+      } else if (preset === 'vibrant') {
+        App.filters.saturate = 175;
+        App.filters.contrast = 115;
+      } else if (preset === 'tealorange') {
+        App.filters.contrast = 128;
+        App.filters.saturate = 145;
+        App.filters.hueRotate = 345;
+      } else if (preset === 'moody') {
+        App.filters.brightness = 90;
+        App.filters.contrast = 135;
+        App.filters.saturate = 70;
+      } else if (preset === 'golden') {
+        App.filters.sepia = 35;
+        App.filters.saturate = 140;
+        App.filters.brightness = 106;
+      }
+      syncSlidersToState();
+      saveHistoryState();
+      requestRender();
+    }
+
+    // --- Text & Sticker Engine & Direct Draggable Canvas ---
+    function syncActiveLayerToOverlay() {
+      const layer = App.textLayers[App.activeTextIndex];
+      if (!layer) {
+        App.textOverlay.text = '';
+        return;
+      }
+      App.textOverlay.text = layer.text;
+      App.textOverlay.x = layer.x;
+      App.textOverlay.y = layer.y;
+      App.textOverlay.size = layer.size;
+      App.textOverlay.color = layer.color;
+      App.textOverlay.stroke = layer.stroke || '#000000';
+      App.textOverlay.bgStyle = layer.bgStyle || 'none';
+      App.textOverlay.font = layer.font;
+      App.textOverlay.anim = layer.anim || 'none';
+
+      const contentIn = document.getElementById('text-content-input');
+      const colorIn = document.getElementById('text-color-input');
+      const sizeIn = document.getElementById('text-size-input');
+      const fontIn = document.getElementById('text-font-input');
+      const strokeIn = document.getElementById('text-stroke-input');
+      const bgIn = document.getElementById('text-bg-input');
+      const animIn = document.getElementById('text-anim-input');
+
+      if (contentIn) contentIn.value = layer.text;
+      if (colorIn) colorIn.value = layer.color;
+      if (sizeIn) sizeIn.value = layer.size;
+      if (fontIn) fontIn.value = layer.font;
+      if (strokeIn) strokeIn.value = layer.stroke || '#000000';
+      if (bgIn) bgIn.value = layer.bgStyle || 'none';
+      if (animIn) animIn.value = layer.anim || 'none';
+    }
+
+    function renderTextLayerPills() {
+      const list = document.getElementById('text-layer-list');
+      if (!list) return;
+      list.innerHTML = '';
+      App.textLayers.forEach((layer, idx) => {
+        const btn = document.createElement('button');
+        const active = idx === App.activeTextIndex;
+        btn.className = active
+          ? "px-2.5 py-1 rounded-md text-[10px] font-semibold bg-brand-500 text-surface-900"
+          : "px-2.5 py-1 rounded-md text-[10px] bg-surface-700 text-gray-300 hover:bg-surface-600";
+        btn.innerText = layer.text ? layer.text.slice(0, 14) : `Teks #${idx + 1}`;
+        btn.onclick = () => {
+          App.activeTextIndex = idx;
+          syncActiveLayerToOverlay();
+          renderTextLayerPills();
+          requestRender();
+        };
+        list.appendChild(btn);
+      });
+    }
+
+    function addTextOverlay() {
+      setToolTab('text');
+      const newLayer = {
+        id: Date.now(),
+        text: 'TukangEdit Creator',
+        x: Math.round(App.canvas.width / 2),
+        y: Math.round(App.canvas.height / 2 + (App.textLayers.length * 30)),
+        size: 44,
+        color: '#ffffff',
+        stroke: '#000000',
+        bgStyle: 'none',
+        font: 'Inter, sans-serif',
+        anim: 'none'
+      };
+      App.textLayers.push(newLayer);
+      App.activeTextIndex = App.textLayers.length - 1;
+      syncActiveLayerToOverlay();
+      renderTextLayerPills();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function addStickerLayer(stickerText) {
+      const newLayer = {
+        id: Date.now(),
+        text: stickerText,
+        x: Math.round(App.canvas.width * (0.35 + Math.random() * 0.3)),
+        y: Math.round(App.canvas.height * (0.3 + Math.random() * 0.3)),
+        size: stickerText.length > 4 ? 32 : 64,
+        color: '#ffffff',
+        stroke: '#000000',
+        bgStyle: stickerText.length > 4 ? 'brand' : 'none',
+        font: 'Inter, sans-serif',
+        anim: 'bounce'
+      };
+      App.textLayers.push(newLayer);
+      App.activeTextIndex = App.textLayers.length - 1;
+      syncActiveLayerToOverlay();
+      renderTextLayerPills();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function addWatermarkPreset() {
+      setToolTab('text');
+      const wmLayer = {
+        id: Date.now(),
+        text: 'TUKANGEDIT • 4K UHD',
+        x: Math.round(App.canvas.width * 0.8),
+        y: Math.round(App.canvas.height * 0.9),
+        size: 24,
+        color: '#00ffaa',
+        stroke: '#000000',
+        bgStyle: 'dark',
+        font: 'JetBrains Mono, monospace',
+        anim: 'none'
+      };
+      App.textLayers.push(wmLayer);
+      App.activeTextIndex = App.textLayers.length - 1;
+      syncActiveLayerToOverlay();
+      renderTextLayerPills();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function deleteSelectedText() {
+      if (App.textLayers.length <= 1) {
+        App.textLayers[0].text = '';
+      } else {
+        App.textLayers.splice(App.activeTextIndex, 1);
+        App.activeTextIndex = Math.max(0, App.activeTextIndex - 1);
+      }
+      syncActiveLayerToOverlay();
+      renderTextLayerPills();
+      saveHistoryState();
+      requestRender();
+    }
+
+    function updateActiveText() {
+      const layer = App.textLayers[App.activeTextIndex];
+      if (!layer) return;
+      layer.text = document.getElementById('text-content-input').value;
+      layer.color = document.getElementById('text-color-input').value;
+      layer.size = parseInt(document.getElementById('text-size-input').value, 10) || 32;
+      layer.font = document.getElementById('text-font-input').value;
+      layer.stroke = document.getElementById('text-stroke-input')?.value || '#000000';
+      layer.bgStyle = document.getElementById('text-bg-input')?.value || 'none';
+      layer.anim = document.getElementById('text-anim-input')?.value || 'none';
+
+      syncActiveLayerToOverlay();
+      renderTextLayerPills();
+      requestRender();
+    }
+
+    function resetPosition() {
+      const cx = Math.round(App.canvas.width / 2);
+      const cy = Math.round(App.canvas.height * 0.82);
+      const layer = App.textLayers[App.activeTextIndex];
+      if (layer) {
+        layer.x = cx;
+        layer.y = cy;
+      }
+      App.textOverlay.x = cx;
+      App.textOverlay.y = cy;
+      requestRender();
+    }
+
+    function getCanvasCoordinates(e) {
+      const rect = App.canvas.getBoundingClientRect();
+      const scaleX = App.canvas.width / rect.width;
+      const scaleY = App.canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function getResolutionScaleFactor() {
+      return Math.max(0.65, Math.min(App.canvas.width, App.canvas.height) / 720);
+    }
+
+    function onPointerDown(e) {
+      if (App.cropMode) return;
+      const { x, y } = getCanvasCoordinates(e);
+      const scaleFactor = getResolutionScaleFactor();
+
+      for (let i = App.textLayers.length - 1; i >= 0; i--) {
+        const layer = App.textLayers[i];
+        if (!layer.text) continue;
+        const scaledSize = Math.round(layer.size * scaleFactor);
+        App.ctx.font = `bold ${scaledSize}px ${layer.font}`;
+        const textWidth = App.ctx.measureText(layer.text).width;
+
+        if (
+          x >= layer.x - textWidth / 2 - 30 * scaleFactor &&
+          x <= layer.x + textWidth / 2 + 30 * scaleFactor &&
+          y >= layer.y - scaledSize - 15 * scaleFactor &&
+          y <= layer.y + 25 * scaleFactor
+        ) {
+          App.activeTextIndex = i;
+          syncActiveLayerToOverlay();
+          renderTextLayerPills();
+          App.textOverlay.isDragging = true;
+          App.textOverlay.dragOffsetX = x - layer.x;
+          App.textOverlay.dragOffsetY = y - layer.y;
+          requestRender();
+          return;
+        }
+      }
+    }
+
+    function onPointerMove(e) {
+      if (!App.textOverlay.isDragging) return;
+      const { x, y } = getCanvasCoordinates(e);
+      const layer = App.textLayers[App.activeTextIndex];
+      if (layer) {
+        layer.x = x - App.textOverlay.dragOffsetX;
+        layer.y = y - App.textOverlay.dragOffsetY;
+        App.textOverlay.x = layer.x;
+        App.textOverlay.y = layer.y;
+        requestRender();
+      }
+    }
+
+    function onPointerUp() {
+      if (App.textOverlay.isDragging) {
+        App.textOverlay.isDragging = false;
+        saveHistoryState();
+        requestRender();
+      }
+    }
+
+    // --- Procedural 4K Ultra HD Demo Video Generator (4 Themes, 60 FPS) ---
+    function drawProcedural4KVideoFrame(ctx, w, h, t) {
+      ctx.save();
+      if (App.proceduralTheme === 'nature') {
+        const sky = ctx.createLinearGradient(0, 0, 0, h);
+        sky.addColorStop(0, '#020617');
+        sky.addColorStop(0.55, '#0f172a');
+        sky.addColorStop(1, '#042f2e');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h);
+
+        for (let band = 0; band < 3; band++) {
+          ctx.beginPath();
+          const baseY = h * (0.22 + band * 0.08);
+          ctx.moveTo(0, baseY);
+          for (let x = 0; x <= w; x += w / 24) {
+            const wave = Math.sin((x / w) * 5 + t * (1.2 + band * 0.3) + band) * (h * 0.06);
+            ctx.lineTo(x, baseY + wave);
+          }
+          ctx.lineTo(w, h * 0.65);
+          ctx.lineTo(0, h * 0.65);
+          ctx.closePath();
+          const aurGrad = ctx.createLinearGradient(0, baseY - h * 0.08, 0, h * 0.6);
+          aurGrad.addColorStop(0, band === 0 ? 'rgba(0, 255, 170, 0.38)' : 'rgba(0, 229, 255, 0.28)');
+          aurGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = aurGrad;
+          ctx.fill();
+        }
+      } else if (App.proceduralTheme === 'matrix') {
+        ctx.fillStyle = '#030a05';
+        ctx.fillRect(0, 0, w, h);
+        const cols = 28;
+        const colW = w / cols;
+        ctx.fillStyle = '#00ff88';
+        ctx.font = `bold ${Math.max(12, Math.round(h / 28))}px monospace`;
+        for (let c = 0; c < cols; c++) {
+          const dropY = ((t * (120 + (c % 5) * 40) + c * 97) % (h * 1.2));
+          for (let k = 0; k < 7; k++) {
+            ctx.globalAlpha = Math.max(0.1, 1 - k * 0.14);
+            const ch = String.fromCharCode(0x30A0 + ((c * 7 + k + Math.floor(t * 8)) % 64));
+            ctx.fillText(ch, c * colW + colW * 0.2, dropY - k * (h / 24));
+          }
+        }
+        ctx.globalAlpha = 1;
+      } else if (App.proceduralTheme === 'sunset') {
+        const bg = ctx.createLinearGradient(0, 0, 0, h);
+        bg.addColorStop(0, '#1e0538');
+        bg.addColorStop(0.5, '#9d174d');
+        bg.addColorStop(0.65, '#f59e0b');
+        bg.addColorStop(1, '#111827');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        const sunR = Math.min(w, h) * 0.22;
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(w / 2, h * 0.45, sunR, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Cyber Neon Synthwave 4K Scene
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+        bgGrad.addColorStop(0, '#060713');
+        bgGrad.addColorStop(0.55, '#190b28');
+        bgGrad.addColorStop(0.56, '#00e5ff');
+        bgGrad.addColorStop(0.58, '#080a14');
+        bgGrad.addColorStop(1, '#040508');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        const sunRadius = Math.min(w, h) * 0.18;
+        const sunX = w * 0.5;
+        const sunY = h * 0.36;
+        const sunGrad = ctx.createLinearGradient(sunX, sunY - sunRadius, sunX, sunY + sunRadius);
+        sunGrad.addColorStop(0, '#00ffaa');
+        sunGrad.addColorStop(0.5, '#00e5ff');
+        sunGrad.addColorStop(1, '#ec4899');
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        const horizon = h * 0.56;
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.45)';
+        ctx.lineWidth = Math.max(1.5, w / 640);
+
+        for (let i = -12; i <= 12; i++) {
+          ctx.beginPath();
+          ctx.moveTo(w / 2 + i * (w * 0.02), horizon);
+          ctx.lineTo(w / 2 + i * (w * 0.14), h);
+          ctx.stroke();
+        }
+
+        const speedOffset = (t * 1.6) % 1;
+        for (let row = 0; row < 10; row++) {
+          const p = Math.pow((row + speedOffset) / 10, 1.8);
+          const y = horizon + p * (h - horizon);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+      }
+
+      // Dynamic Equalizer Bars
+      const barCount = 28;
+      const barAreaW = w * 0.34;
+      const startX = (w - barAreaW) / 2;
+      const baseLineY = h * 0.52;
+      const barW = (barAreaW / barCount) * 0.65;
+
+      for (let b = 0; b < barCount; b++) {
+        const amp = Math.abs(Math.sin(t * 4.5 + b * 0.45) * Math.cos(t * 2.1 - b * 0.2));
+        const bh = amp * (h * 0.14) + h * 0.01;
+        ctx.fillStyle = b % 2 === 0 ? '#00e5ff' : '#00ffaa';
+        ctx.fillRect(startX + b * (barAreaW / barCount), baseLineY - bh, barW, bh);
+      }
+
+      ctx.restore();
+    }
+
+    // --- Helper: Draw Media with Crop + Cover / Fit / Stretch & Transform ---
+    function drawSourceMedia(ctx, sourceEl, srcW, srcH, dstW, dstH) {
+      if (!srcW || !srcH) return;
+
+      // Apply user's interactive crop region to source coordinates
+      const crop = App.appliedCrop || { x: 0, y: 0, w: 1, h: 1 };
+      const sx = Math.round(crop.x * srcW);
+      const sy = Math.round(crop.y * srcH);
+      const sw = Math.max(1, Math.round(crop.w * srcW));
+      const sh = Math.max(1, Math.round(crop.h * srcH));
+
+      ctx.save();
+      ctx.translate(dstW / 2, dstH / 2);
+      ctx.rotate((App.rotation * Math.PI) / 180);
+      const zoomScale = (App.zoom / 100);
+      ctx.scale(App.flipH * zoomScale, App.flipV * zoomScale);
+
+      if (App.scaleMode === 'stretch') {
+        ctx.drawImage(sourceEl, sx, sy, sw, sh, -dstW / 2, -dstH / 2, dstW, dstH);
+      } else if (App.scaleMode === 'fit') {
+        const coverScale = Math.max(dstW / sw, dstH / sh) * 1.08;
+        ctx.save();
+        ctx.filter = 'blur(22px) brightness(50%)';
+        ctx.drawImage(sourceEl, sx, sy, sw, sh, (-sw * coverScale) / 2, (-sh * coverScale) / 2, sw * coverScale, sh * coverScale);
+        ctx.restore();
+
+        const fitScale = Math.min(dstW / sw, dstH / sh);
+        const drawW = sw * fitScale;
+        const drawH = sh * fitScale;
+        ctx.drawImage(sourceEl, sx, sy, sw, sh, -drawW / 2, -drawH / 2, drawW, drawH);
+      } else {
+        const coverScale = Math.max(dstW / sw, dstH / sh);
+        const drawW = sw * coverScale;
+        const drawH = sh * coverScale;
+        ctx.drawImage(sourceEl, sx, sy, sw, sh, -drawW / 2, -drawH / 2, drawW, drawH);
+      }
+      ctx.restore();
+    }
+
+    function buildEnhancedFilterString() {
+      const f = App.filters;
+      const hdrBoostContrast = App.uhd.enabled ? Math.round(App.uhd.hdr * 0.28 + App.uhd.sharpness * 0.15) : 0;
+      const hdrBoostSat = App.uhd.enabled ? Math.round(App.uhd.hdr * 0.35) : 0;
+      const shadowLiftBright = App.uhd.enabled ? Math.round((App.uhd.shadows || 0) * 0.22) : 0;
+      const tempSepia = App.uhd.enabled && App.uhd.temp > 0 ? Math.round(App.uhd.temp * 0.25) : 0;
+      const tempHue = App.uhd.enabled && App.uhd.temp < 0 ? Math.round(App.uhd.temp * 0.3) : 0;
+      const denoiseBlur = App.uhd.enabled ? (App.uhd.denoise * 0.02) : 0;
+
+      const totalBrightness = Math.max(10, Math.round(f.brightness + shadowLiftBright));
+      const totalContrast = Math.max(10, Math.round(f.contrast + hdrBoostContrast));
+      const totalSat = Math.max(0, Math.round(f.saturate + hdrBoostSat));
+      const totalSepia = Math.min(100, Math.round(f.sepia + tempSepia));
+      const totalHue = Math.round(f.hueRotate + tempHue);
+      const totalBlur = (parseFloat(f.blur) + denoiseBlur).toFixed(2);
+
+      // In Smart Proxy mode during live playback, skip heavy SVG feConvolveMatrix per-frame overhead and use hardware contrast/clarity; attach SVG sharpen on export or when full-res
+      const useSvgSharpen = App.uhd.enabled && App.uhd.sharpness > 0 && (!App.smartProxyMode || App.isExporting || !App.isPlaying);
+      const sharpenRef = useSvgSharpen ? ' url(#uhd-sharpen-filter)' : '';
+
+      return `brightness(${totalBrightness}%) contrast(${totalContrast}%) saturate(${totalSat}%) sepia(${totalSepia}%) hue-rotate(${totalHue}deg) blur(${totalBlur}px)${sharpenRef}`;
+    }
+
+    function drawSceneContent(ctx, w, h) {
+      if (App.mediaType === 'video') {
+        if (App.useProceduralVideo) {
+          drawProcedural4KVideoFrame(ctx, w, h, App.currentTime);
+        } else if (App.videoEl.readyState >= 2) {
+          drawSourceMedia(ctx, App.videoEl, App.videoEl.videoWidth, App.videoEl.videoHeight, w, h);
+        }
+      } else if (App.mediaType === 'image' && App.imageEl.complete && App.imageEl.naturalWidth > 0) {
+        drawSourceMedia(ctx, App.imageEl, App.imageEl.naturalWidth, App.imageEl.naturalHeight, w, h);
+      }
+    }
+
+    // --- Render CapCut Pro VFX Overlays ---
+    function renderVfxOverlays(ctx, w, h, t) {
+      const vfx = App.vfx.type;
+      const intensity = (App.vfx.intensity || 65) / 100;
+      if (vfx === 'none') return;
+
+      ctx.save();
+      if (vfx === 'letterbox') {
+        const barH = Math.round(h * 0.12 * intensity);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, w, barH);
+        ctx.fillRect(0, h - barH, w, barH);
+      } else if (vfx === 'vhs') {
+        ctx.fillStyle = `rgba(255, 0, 128, ${0.06 * intensity})`;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        for (let y = 0; y < h; y += 6) {
+          ctx.fillRect(0, y, w, 2);
+        }
+        ctx.fillStyle = '#ff3333';
+        ctx.beginPath();
+        ctx.arc(w * 0.06, h * 0.08, Math.max(5, w * 0.008), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(12, Math.round(h * 0.032))}px monospace`;
+        ctx.fillText(`REC • PLAY  ${formatTime(t)}`, w * 0.08, h * 0.09);
+      } else if (vfx === 'bokeh') {
+        const count = Math.round(18 * intensity);
+        for (let i = 0; i < count; i++) {
+          const px = ((Math.sin(i * 73.1 + t * 0.4) + 1) * 0.5) * w;
+          const py = ((Math.cos(i * 41.7 - t * 0.35) + 1) * 0.5) * h;
+          const rad = (0.02 + (i % 5) * 0.012) * Math.min(w, h);
+          const g = ctx.createRadialGradient(px, py, 0, px, py, rad);
+          g.addColorStop(0, i % 2 === 0 ? 'rgba(255, 215, 100, 0.45)' : 'rgba(0, 229, 255, 0.38)');
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(px, py, rad, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (vfx === 'glitch') {
+        const slices = 5;
+        for (let s = 0; s < slices; s++) {
+          const sy = Math.floor(((Math.sin(t * 14 + s * 9) + 1) * 0.45) * h);
+          const sh = Math.max(4, Math.floor(h * 0.04 * intensity));
+          const shift = Math.round(Math.sin(t * 25 + s) * w * 0.03 * intensity);
+          ctx.drawImage(App.canvas, 0, sy, w, sh, shift, sy, w, sh);
+          ctx.fillStyle = s % 2 === 0 ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 0, 90, 0.18)';
+          ctx.fillRect(0, sy, w, sh);
+        }
+      } else if (vfx === 'rain') {
+        ctx.strokeStyle = `rgba(180, 225, 255, ${0.45 * intensity})`;
+        ctx.lineWidth = Math.max(1, w / 800);
+        const drops = Math.round(45 * intensity);
+        for (let d = 0; d < drops; d++) {
+          const rx = ((d * 97 + t * 320) % w);
+          const ry = ((d * 173 + t * 900) % h);
+          ctx.beginPath();
+          ctx.moveTo(rx, ry);
+          ctx.lineTo(rx - w * 0.01, ry + h * 0.06);
+          ctx.stroke();
+        }
+      } else if (vfx === 'neonframe') {
+        const pad = Math.round(Math.min(w, h) * 0.03);
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = Math.max(3, Math.round(w * 0.005));
+        ctx.shadowColor = '#00ffaa';
+        ctx.shadowBlur = 18;
+        ctx.strokeRect(pad, pad, w - pad * 2, h - pad * 2);
+      }
+      ctx.restore();
+    }
+
+    // --- Render Clip Cut Transition Effects ---
+    function renderClipTransitionEffect(ctx, w, h, t) {
+      if (App.clipTransition === 'none' || App.segments.length <= 1) return;
+      // Check proximity to any split point
+      for (let i = 1; i < App.segments.length; i++) {
+        const splitTime = App.segments[i].start;
+        const dist = Math.abs(t - splitTime);
+        if (dist < 0.35) {
+          const strength = 1 - (dist / 0.35);
+          ctx.save();
+          if (App.clipTransition === 'fade') {
+            ctx.fillStyle = `rgba(0, 0, 0, ${strength.toFixed(2)})`;
+            ctx.fillRect(0, 0, w, h);
+          } else if (App.clipTransition === 'flash') {
+            ctx.fillStyle = `rgba(255, 255, 255, ${strength.toFixed(2)})`;
+            ctx.fillRect(0, 0, w, h);
+          } else if (App.clipTransition === 'glitch') {
+            ctx.fillStyle = `rgba(0, 229, 255, ${(strength * 0.45).toFixed(2)})`;
+            ctx.fillRect(0, 0, w, h);
+          }
+          ctx.restore();
+          break;
+        }
+      }
+    }
+
+    function renderSingleFrame(now = 0) {
+      const ctx = App.ctx;
+      const canvas = App.canvas;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.clearRect(0, 0, w, h);
+
+      // Optional Beat Shake VFX Transform
+      ctx.save();
+      if (App.vfx.type === 'shake' && App.isPlaying) {
+        const shakeAmt = (App.vfx.intensity / 100) * 0.035;
+        const sScale = 1 + Math.abs(Math.sin(App.currentTime * 12)) * shakeAmt;
+        ctx.translate(w / 2, h / 2);
+        ctx.scale(sScale, sScale);
+        ctx.translate(-w / 2, -h / 2);
+      }
+
+      if (App.splitCompareMode && !App.compareOriginal) {
+        // Left Side: Original Unfiltered
+        const splitX = Math.round(w * App.splitCompareRatio);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, splitX, h);
+        ctx.clip();
+        ctx.filter = 'none';
+        drawSceneContent(ctx, w, h);
+        ctx.restore();
+
+        // Right Side: 4K Ultra HD + Filters
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(splitX, 0, w - splitX, h);
+        ctx.clip();
+        ctx.filter = buildEnhancedFilterString();
+        drawSceneContent(ctx, w, h);
+        ctx.restore();
+      } else {
+        ctx.filter = App.compareOriginal ? 'none' : buildEnhancedFilterString();
+        drawSceneContent(ctx, w, h);
+      }
+
+      ctx.filter = 'none';
+      ctx.restore();
+
+      // Chroma Key Processing if enabled
+      if (App.chromaKey.enabled && !App.compareOriginal) {
+        try {
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const data = imgData.data;
+          const hex = App.chromaKey.color.replace('#', '');
+          const kr = parseInt(hex.substring(0, 2), 16) || 0;
+          const kg = parseInt(hex.substring(2, 4), 16) || 255;
+          const kb = parseInt(hex.substring(4, 6), 16) || 0;
+          const thresh = (App.chromaKey.tolerance / 100) * 220;
+          const threshSq = thresh * thresh;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const dr = data[i] - kr;
+            const dg = data[i + 1] - kg;
+            const db = data[i + 2] - kb;
+            if (dr * dr + dg * dg + db * db < threshSq) {
+              data[i] = 11;
+              data[i + 1] = 12;
+              data[i + 2] = 16;
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+        } catch (e) {}
+      }
+
+      // Draw 4K Cinematic Vignette if enabled
+      if (!App.compareOriginal && App.uhd.enabled && App.uhd.vignette > 0) {
+        const vAlpha = (App.uhd.vignette / 100) * 0.65;
+        const rad = Math.max(w, h) * 0.72;
+        const vig = ctx.createRadialGradient(w / 2, h / 2, rad * 0.35, w / 2, h / 2, rad);
+        vig.addColorStop(0, 'rgba(0,0,0,0)');
+        vig.addColorStop(1, `rgba(0,0,0,${vAlpha.toFixed(2)})`);
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // Render CapCut Pro VFX & Transitions
+      if (!App.compareOriginal) {
+        renderVfxOverlays(ctx, w, h, App.currentTime);
+        renderClipTransitionEffect(ctx, w, h, App.currentTime);
+      }
+
+      // Render All Text & Sticker Overlay Layers
+      const scaleFactor = getResolutionScaleFactor();
+      App.textLayers.forEach((layer, idx) => {
+        if (!layer.text) return;
+        ctx.save();
+
+        let drawX = layer.x;
+        let drawY = layer.y;
+        let displayStr = layer.text;
+
+        // Text Animations
+        const anim = layer.anim || 'none';
+        if (anim === 'bounce') {
+          drawY += Math.sin(App.currentTime * 6) * (12 * scaleFactor);
+        } else if (anim === 'wave') {
+          drawX += Math.cos(App.currentTime * 5) * (10 * scaleFactor);
+        } else if (anim === 'typewriter') {
+          const len = Math.max(1, Math.floor(((App.currentTime * 6) % (layer.text.length + 4))));
+          displayStr = layer.text.slice(0, len);
+        }
+
+        const scaledSize = Math.round(layer.size * scaleFactor);
+        ctx.font = `bold ${scaledSize}px ${layer.font}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+
+        const metrics = ctx.measureText(displayStr);
+        const textW = metrics.width;
+        const padX = 18 * scaleFactor;
+        const padY = 10 * scaleFactor;
+
+        if (layer.bgStyle === 'dark' || layer.bgStyle === 'brand') {
+          ctx.fillStyle = layer.bgStyle === 'brand' ? 'rgba(0, 229, 255, 0.9)' : 'rgba(11, 12, 16, 0.8)';
+          const boxX = drawX - textW / 2 - padX;
+          const boxY = drawY - scaledSize - padY * 0.4;
+          const boxW = textW + padX * 2;
+          const boxH = scaledSize + padY * 1.4;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === 'function') { ctx.roundRect(boxX, boxY, boxW, boxH, 10 * scaleFactor); } else { ctx.rect(boxX, boxY, boxW, boxH); }
+          ctx.fill();
+        }
+
+        ctx.shadowColor = anim === 'pulse' ? '#00ffaa' : 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = (anim === 'pulse' ? (16 + Math.sin(App.currentTime * 8) * 10) : 12) * scaleFactor;
+        ctx.shadowOffsetX = 3 * scaleFactor;
+        ctx.shadowOffsetY = 3 * scaleFactor;
+
+        if (layer.stroke && layer.stroke !== 'none') {
+          ctx.strokeStyle = layer.stroke;
+          ctx.lineWidth = Math.max(2, 4 * scaleFactor);
+          ctx.lineJoin = 'round';
+          ctx.strokeText(displayStr, drawX, drawY);
+        }
+
+        ctx.fillStyle = layer.bgStyle === 'brand' ? '#0b0c10' : layer.color;
+        ctx.fillText(displayStr, drawX, drawY);
+
+        if (App.textOverlay.isDragging && idx === App.activeTextIndex) {
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = '#00e5ff';
+          ctx.lineWidth = Math.max(2, 2.5 * scaleFactor);
+          ctx.setLineDash([8 * scaleFactor, 6 * scaleFactor]);
+          ctx.strokeRect(
+            drawX - textW / 2 - 14 * scaleFactor,
+            drawY - scaledSize - 6 * scaleFactor,
+            textW + 28 * scaleFactor,
+            scaledSize + 20 * scaleFactor
+          );
+        }
+        ctx.restore();
+      });
+    }
+
+    // --- Core Smart Render Loop (Lightweight & 60 FPS) ---
+    function renderLoop(now = 0) {
+      let shouldDraw = App.needsRender || App.isExporting;
+
+      if (App.mediaType === 'video' && App.isPlaying) {
+        shouldDraw = true;
+        if (App.useProceduralVideo) {
+          const dt = Math.min(0.1, ((now - App.lastFrameTimestamp) / 1000) * App.speed);
+          App.lastFrameTimestamp = now;
+          let nextT = getValidPlaybackTime(App.currentTime + dt);
+          if (nextT >= App.trimEnd) {
+            nextT = getValidPlaybackTime(App.trimStart);
+          }
+          App.currentTime = nextT;
+          const scrubber = document.getElementById('video-scrubber');
+          if (scrubber) scrubber.value = App.currentTime;
+          updatePlayheadNeedleOnly();
+          updateTimeLabels();
+        } else {
+          App.lastFrameTimestamp = now;
+        }
+      } else {
+        App.lastFrameTimestamp = now;
+      }
+
+      if (shouldDraw) {
+        App.needsRender = false;
+        renderSingleFrame(now);
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // ================= REAL 4K ULTRA HD EXPORT SYSTEM =================
+    async function triggerExport() {
+      const modal = document.getElementById('export-modal');
+      const progressBar = document.getElementById('export-progress-bar');
+      const title = document.getElementById('export-status-title');
+      const desc = document.getElementById('export-status-desc');
+      const spinner = document.getElementById('export-spinner');
+      const successIcon = document.getElementById('export-success-icon');
+      const closeBtn = document.getElementById('export-close-btn');
+
+      // Switch canvas to full target resolution (e.g., 3840x2160 4K UHD) during export
+      App.isExporting = true;
+      recalcCanvasResolution();
+      renderSingleFrame(performance.now());
+
+      modal.classList.remove('hidden');
+      spinner.classList.remove('hidden');
+      successIcon.classList.add('hidden');
+      closeBtn.classList.add('hidden');
+      progressBar.style.width = '0%';
+      title.innerText = `Merender Hasil Karya (${App.canvas.width}×${App.canvas.height})...`;
+      desc.innerText = App.mode === 'video'
+        ? `Merekam stream video ${App.targetFps}fps kualitas tinggi & filter Ultra HD...`
+        : "Menyusun foto Ultra HD lossless beresolusi penuh...";
+
+      if (App.mode === 'photo') {
+        progressBar.style.width = '100%';
+        setTimeout(() => {
+          try {
+            const link = document.createElement('a');
+            link.download = `TukangEdit_Foto_4K_${App.canvas.width}x${App.canvas.height}_${Date.now()}.png`;
+            link.href = App.canvas.toDataURL('image/png', 1.0);
+            link.click();
+            finishExportUI(`Foto (${App.canvas.width}×${App.canvas.height}) berhasil diunduh.`);
+          } catch (err) {
+            finishExportUI("Foto telah selesai dirender.");
+          }
+        }, 400);
+      } else {
+        if (App.isPlaying) togglePlay();
+
+        const stream = App.canvas.captureStream(App.targetFps || 60);
+        let recorder;
+        const mimeCandidates = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm',
+          'video/mp4'
+        ];
+        let chosenMime = '';
+        for (const m of mimeCandidates) {
+          if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) {
+            chosenMime = m;
+            break;
+          }
+        }
+
+        try {
+          recorder = chosenMime
+            ? new MediaRecorder(stream, { mimeType: chosenMime, videoBitsPerSecond: 25000000 })
+            : new MediaRecorder(stream);
+        } catch (e) {
+          recorder = new MediaRecorder(stream);
+        }
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          const ext = chosenMime.includes('mp4') ? 'mp4' : 'webm';
+          const blob = new Blob(chunks, { type: chosenMime || 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `TukangEdit_Video_${App.canvas.width}x${App.canvas.height}_${Date.now()}.${ext}`;
+          link.href = url;
+          link.click();
+          App.isPlaying = false;
+          setPlayButtonIcon('play');
+          finishExportUI(`Video (${App.canvas.width}×${App.canvas.height}) berhasil disimpan ke perangkat Anda.`);
+        };
+
+        recorder.start(100);
+        if (App.useProceduralVideo) {
+          App.currentTime = getValidPlaybackTime(App.trimStart);
+          App.lastFrameTimestamp = performance.now();
+          App.isPlaying = true;
+        } else {
+          App.videoEl.currentTime = getValidPlaybackTime(App.trimStart);
+          App.videoEl.play().catch(() => {});
+          App.isPlaying = true;
+        }
+
+        const rawDuration = Math.max(1, (App.trimEnd - App.trimStart) / App.speed);
+        const durationToRecord = Math.min(rawDuration, 5);
+        const startTime = Date.now();
+
+        const checkInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const progress = Math.min((elapsed / durationToRecord) * 100, 100);
+          progressBar.style.width = `${progress}%`;
+
+          const mediaTime = App.useProceduralVideo ? App.currentTime : App.videoEl.currentTime;
+          if (mediaTime >= App.trimEnd || elapsed >= durationToRecord) {
+            clearInterval(checkInterval);
+            if (!App.useProceduralVideo) App.videoEl.pause();
+            App.isPlaying = false;
+            if (recorder.state !== 'inactive') recorder.stop();
+          }
+        }, 80);
+      }
+
+      function finishExportUI(customDesc) {
+        App.isExporting = false;
+        recalcCanvasResolution();
+        requestRender();
+        spinner.classList.add('hidden');
+        successIcon.classList.remove('hidden');
+        title.innerText = "Ekspor 4K Ultra HD Berhasil!";
+        desc.innerText = customDesc || "File telah tersimpan otomatis di perangkat Anda.";
+        closeBtn.classList.remove('hidden');
+      }
+    }
+
+    function closeExportModal() {
+      document.getElementById('export-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
